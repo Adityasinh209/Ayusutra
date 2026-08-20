@@ -107,6 +107,21 @@ Output is written to `frontend/dist/`.
 
 ---
 
+## Deploying on Render
+
+This project is set up as a Render static site for the `frontend` app.
+
+1. Connect the GitHub repo in Render.
+2. Use the included `render.yaml` blueprint, or create a new Static Site manually.
+3. Set the root directory to `frontend`.
+4. Use `npm ci && npm run build` as the build command.
+5. Set the publish directory to `dist`.
+6. Add a rewrite rule from `/*` to `/index.html` so React Router routes work on refresh.
+
+The deployed site will be a static frontend only. Since this prototype uses `localStorage` for demo data, no backend service is required for Phase 1.
+
+---
+
 ## Project Structure
 
 ```
