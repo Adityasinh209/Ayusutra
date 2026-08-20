@@ -13,6 +13,27 @@ function delay(ms = 400) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+export async function loginAs(role) {
+  await delay(200)
+  const user = getAll('users').find((u) => u.role === role && u.active)
+  if (!user) {
+    const err = new Error('Role not found.')
+    err.status = 404
+    throw err
+  }
+  const session = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    roleLabel: user.roleLabel,
+    ...(user.patientId ? { patientId: user.patientId } : {}),
+    ...(user.therapistId ? { therapistId: user.therapistId } : {}),
+  }
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  return session
+}
+
 export async function login(email, password) {
   await delay()
   const users = getAll('users')
@@ -24,7 +45,15 @@ export async function login(email, password) {
     err.status = 401
     throw err
   }
-  const session = { id: user.id, name: user.name, email: user.email, role: user.role, roleLabel: user.roleLabel }
+  const session = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    roleLabel: user.roleLabel,
+    ...(user.patientId ? { patientId: user.patientId } : {}),
+    ...(user.therapistId ? { therapistId: user.therapistId } : {}),
+  }
   localStorage.setItem(SESSION_KEY, JSON.stringify(session))
   return session
 }

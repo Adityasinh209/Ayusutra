@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback } from 'react'
-import { login as loginService, logout as logoutService, getSession } from '../services/auth.js'
+import { login as loginService, loginAs as loginAsService, logout as logoutService, getSession } from '../services/auth.js'
 
 const AuthContext = createContext(null)
 
@@ -12,13 +12,19 @@ export function AuthProvider({ children }) {
     return session
   }, [])
 
+  const loginAs = useCallback(async (role) => {
+    const session = await loginAsService(role)
+    setUser(session)
+    return session
+  }, [])
+
   const logout = useCallback(() => {
     logoutService()
     setUser(null)
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, loginAs, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   )

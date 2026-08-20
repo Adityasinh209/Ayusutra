@@ -5,9 +5,10 @@
  */
 
 export const ROLES = [
-  { id: 'role-1', name: 'admin', label: 'Administrator' },
-  { id: 'role-2', name: 'doctor', label: 'Doctor' },
-  { id: 'role-3', name: 'receptionist', label: 'Receptionist' },
+  { id: 'role-1', name: 'doctor', label: 'Doctor' },
+  { id: 'role-2', name: 'receptionist', label: 'Receptionist' },
+  { id: 'role-3', name: 'patient', label: 'Patient' },
+  { id: 'role-4', name: 'therapist', label: 'Therapist' },
 ]
 
 export const USERS = [
@@ -31,11 +32,22 @@ export const USERS = [
   },
   {
     id: 'user-3',
-    name: 'Admin User',
-    email: 'admin@ayursutra.dev',
-    password: 'Admin@123',
-    role: 'admin',
-    roleLabel: 'Administrator',
+    name: 'Rahul Sharma',
+    email: 'patient@ayursutra.dev',
+    password: 'Patient@123',
+    role: 'patient',
+    roleLabel: 'Patient',
+    patientId: 'patient-1',
+    active: true,
+  },
+  {
+    id: 'user-4',
+    name: 'Amit Joshi',
+    email: 'therapist@ayursutra.dev',
+    password: 'Therapist@123',
+    role: 'therapist',
+    roleLabel: 'Therapist',
+    therapistId: 'therapist-1',
     active: true,
   },
 ]
@@ -246,6 +258,7 @@ export const APPOINTMENTS = [
     startTime: '10:00',
     endTime: '11:00',
     status: 'Confirmed',
+    sessionNotes: '',
     createdBy: 'user-2',
     createdAt: '2026-08-12T11:00:00.000Z',
   },
@@ -259,8 +272,23 @@ export const APPOINTMENTS = [
     startTime: '11:00',
     endTime: '11:45',
     status: 'Scheduled',
+    sessionNotes: '',
     createdBy: 'user-2',
     createdAt: '2026-08-13T10:00:00.000Z',
+  },
+  {
+    id: 'appt-3',
+    patientId: 'patient-1',
+    therapyId: 'therapy-1',
+    therapistId: 'therapist-1',
+    roomId: 'room-2',
+    date: '2026-08-19',
+    startTime: '09:00',
+    endTime: '10:00',
+    status: 'Scheduled',
+    sessionNotes: '',
+    createdBy: 'user-2',
+    createdAt: '2026-08-14T09:00:00.000Z',
   },
 ]
 

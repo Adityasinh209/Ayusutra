@@ -4,12 +4,6 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import Badge from '../components/Badge.jsx'
 
 const NAV_BY_ROLE = {
-  admin: [
-    { to: '/dashboard', label: 'Dashboard' },
-    { to: '/patients', label: 'Patients' },
-    { to: '/appointments', label: 'Appointments' },
-    { to: '/masters', label: 'Masters' },
-  ],
   doctor: [
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/patients', label: 'Patients' },
@@ -21,6 +15,10 @@ const NAV_BY_ROLE = {
     { to: '/patients', label: 'Patients' },
     { to: '/scheduling', label: 'Scheduling' },
     { to: '/appointments', label: 'Appointments' },
+  ],
+  patient: [
+    { to: '/dashboard', label: 'Dashboard' },
+    { to: '/appointments', label: 'My Appointments' },
   ],
 }
 

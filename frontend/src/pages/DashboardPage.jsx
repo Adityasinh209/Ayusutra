@@ -37,7 +37,7 @@ export default function DashboardPage() {
       ? 'Patient consultations and EMR updates are accessible from the sidebar.'
       : user.role === 'receptionist'
       ? 'Schedule therapy appointments from the Scheduling section.'
-      : 'Manage system configuration from the Masters section.'
+      : 'View your upcoming appointments and therapy history.'
 
   const quickLinks =
     user.role === 'doctor'
@@ -51,8 +51,8 @@ export default function DashboardPage() {
           { label: 'Schedule Therapy', to: '/scheduling' },
         ]
       : [
-          { label: 'View Patients', to: '/patients' },
-          { label: 'Masters', to: '/masters' },
+          { label: 'My Appointments', to: '/appointments' },
+          { label: 'View My Profile', to: `/patients/${user.patientId ?? 'patient-1'}` },
         ]
 
   return (

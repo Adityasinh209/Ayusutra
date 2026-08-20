@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { login, logout, getSession } from '../services/auth.js'
+import { login, loginAs, logout, getSession } from '../services/auth.js'
 
 describe('Authentication Service', () => {
   beforeEach(() => {
@@ -17,9 +17,9 @@ describe('Authentication Service', () => {
     expect(session.role).toBe('receptionist')
   })
 
-  it('logs in with valid admin credentials', async () => {
-    const session = await login('admin@ayursutra.dev', 'Admin@123')
-    expect(session.role).toBe('admin')
+  it('logs in with valid patient credentials', async () => {
+    const session = await login('patient@ayursutra.dev', 'Patient@123')
+    expect(session.role).toBe('patient')
   })
 
   it('throws on invalid password', async () => {
@@ -54,5 +54,17 @@ describe('Authentication Service', () => {
 
   it('returns null session when not logged in', () => {
     expect(getSession()).toBeNull()
+  })
+
+  it('loginAs sets session for doctor role', async () => {
+    const session = await loginAs('doctor')
+    expect(session.role).toBe('doctor')
+    expect(session.name).toBe('Dr. Meera Nair')
+  })
+
+  it('loginAs sets session for patient role with patientId', async () => {
+    const session = await loginAs('patient')
+    expect(session.role).toBe('patient')
+    expect(session.patientId).toBe('patient-1')
   })
 })

@@ -41,19 +41,16 @@ export default function AppRoutes() {
         <Route path="/patients/:id" element={<AuthedRoute><PatientDetailPage /></AuthedRoute>} />
         <Route
           path="/consultation"
-          element={<AuthedRoute roles={['doctor', 'admin']}><ConsultationPage /></AuthedRoute>}
+          element={<AuthedRoute roles={['doctor']}><ConsultationPage /></AuthedRoute>}
         />
         <Route
           path="/scheduling"
-          element={<AuthedRoute roles={['receptionist', 'admin']}><SchedulingPage /></AuthedRoute>}
+          element={<AuthedRoute roles={['receptionist']}><SchedulingPage /></AuthedRoute>}
         />
         <Route path="/appointments" element={<AuthedRoute><AppointmentsPage /></AuthedRoute>} />
-        <Route
-          path="/masters"
-          element={<AuthedRoute roles={['admin']}><MastersPage /></AuthedRoute>}
-        />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/masters" element={<AuthedRoute><MastersPage /></AuthedRoute>} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Suspense>
   )

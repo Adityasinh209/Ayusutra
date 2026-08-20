@@ -8,6 +8,7 @@ const COLORS = {
   admin: 'bg-purple-50 text-purple-700 ring-purple-600/20',
   doctor: 'bg-blue-50 text-blue-700 ring-blue-600/20',
   receptionist: 'bg-teal-50 text-teal-700 ring-teal-600/20',
+  patient: 'bg-amber-50 text-amber-700 ring-amber-600/20',
 }
 
 export default function Badge({ label, color }) {
