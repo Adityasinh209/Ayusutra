@@ -120,6 +120,23 @@ This project is set up as a Render static site for the `frontend` app.
 
 The deployed site will be a static frontend only. Since this prototype uses `localStorage` for demo data, no backend service is required for Phase 1.
 
+## Deploying on Vercel
+
+This repository now includes a root `vercel.json` so Vercel can deploy the Vite app from `frontend/` without extra restructuring.
+
+1. Push the repository to GitHub.
+2. Import the repo into Vercel.
+3. Keep the project root as the repository root.
+4. Vercel will use the included settings:
+   - Install command: `cd frontend && npm ci`
+   - Build command: `cd frontend && npm run build`
+   - Output directory: `frontend/dist`
+5. Deploy the project.
+
+The configuration also includes a rewrite from all routes to `index.html`, so React Router pages continue to work on refresh and direct URL access.
+
+This deploy is still frontend-only. Since the Phase 1 prototype stores data in browser `localStorage`, no backend environment variables or database services are required.
+
 ---
 
 ## Project Structure
