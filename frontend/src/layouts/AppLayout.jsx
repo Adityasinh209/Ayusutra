@@ -51,7 +51,14 @@ export default function AppLayout({ children }) {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
 
-  const navItems = NAV_BY_ROLE[user?.role] ?? []
+  const navItems = user?.role === 'patient'
+    ? [
+        { to: '/dashboard', label: 'Dashboard', icon: '📊' },
+        { to: `/patients/${user?.patientId || 'patient-1'}`, label: 'My Treatment Plan', icon: '🌿' },
+        { to: '/appointments', label: 'My Therapy Sessions', icon: '⏳' },
+        { to: '/assistant', label: 'AyurSutra Assistant', icon: '🤖' },
+      ]
+    : NAV_BY_ROLE[user?.role] ?? []
 
   function handleLogout() {
     logout()

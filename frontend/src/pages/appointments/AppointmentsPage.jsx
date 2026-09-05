@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { listAppointments, cancelAppointment } from '../../services/appointments.js'
+import { useAuth } from '../../hooks/useAuth.jsx'
+import { listAppointments, getAppointmentsForPatient, cancelAppointment } from '../../services/appointments.js'
 import { getAll } from '../../mocks/store.js'
 import PageHeader from '../../components/PageHeader.jsx'
 import Table from '../../components/Table.jsx'
@@ -12,6 +13,7 @@ import Alert from '../../components/Alert.jsx'
 import { formatDate, formatTime } from '../../utils/date.js'
 
 export default function AppointmentsPage() {
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -29,7 +31,12 @@ export default function AppointmentsPage() {
 
   async function load() {
     try {
-      const data = await listAppointments()
+      let data = []
+      if (user?.role === 'patient' && user?.patientId) {
+        data = await getAppointmentsForPatient(user.patientId)
+      } else {
+        data = await listAppointments()
+      }
       setAppointments(data)
     } catch (e) {
       setError(e.message)
@@ -40,7 +47,7 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     load()
-  }, [])
+  }, [user?.role, user?.patientId])
 
   async function handleCancel() {
     if (!cancelTarget) return
@@ -65,26 +72,30 @@ export default function AppointmentsPage() {
   })
 
   const columns = [
-    {
-      key: 'patient',
-      label: 'Patient',
-      render: (r) => (
-        <div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              navigate(`/patients/${r.patientId}`)
-            }}
-            className="text-emerald-800 hover:text-emerald-950 font-bold text-left cursor-pointer"
-          >
-            {patients[r.patientId]?.fullName ?? 'Patient'}
-          </button>
-          <span className="text-[10px] text-stone-400 block">
-            {patients[r.patientId]?.prakriti || 'Vata-Pitta'}
-          </span>
-        </div>
-      ),
-    },
+    ...(user?.role !== 'patient'
+      ? [
+          {
+            key: 'patient',
+            label: 'Patient',
+            render: (r) => (
+              <div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    navigate(`/patients/${r.patientId}`)
+                  }}
+                  className="text-emerald-800 hover:text-emerald-950 font-bold text-left cursor-pointer"
+                >
+                  {patients[r.patientId]?.fullName ?? 'Patient'}
+                </button>
+                <span className="text-[10px] text-stone-400 block">
+                  {patients[r.patientId]?.prakriti || 'Vata-Pitta'}
+                </span>
+              </div>
+            ),
+          },
+        ]
+      : []),
     {
       key: 'therapy',
       label: 'Therapy & Stage',
@@ -152,24 +163,28 @@ export default function AppointmentsPage() {
         </div>
       ),
     },
-    {
-      key: 'actions',
-      label: '',
-      render: (r) =>
-        r.status !== 'Cancelled' && r.status !== 'Completed' ? (
-          <Button
-            size="xs"
-            variant="ghost"
-            className="text-red-500 hover:text-red-700"
-            onClick={(e) => {
-              e.stopPropagation()
-              setCancelTarget(r)
-            }}
-          >
-            Cancel
-          </Button>
-        ) : null,
-    },
+    ...(user?.role !== 'patient'
+      ? [
+          {
+            key: 'actions',
+            label: '',
+            render: (r) =>
+              r.status !== 'Cancelled' && r.status !== 'Completed' ? (
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  className="text-red-500 hover:text-red-700"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setCancelTarget(r)
+                  }}
+                >
+                  Cancel
+                </Button>
+              ) : null,
+          },
+        ]
+      : []),
   ]
 
   if (loading) return <PageSpinner />
@@ -177,12 +192,18 @@ export default function AppointmentsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Panchakarma Therapy Sessions"
-        subtitle={`${appointments.length} total scheduled, confirmed, and completed procedural sessions`}
+        title={user?.role === 'patient' ? 'My Therapy Sessions' : 'Panchakarma Therapy Sessions'}
+        subtitle={
+          user?.role === 'patient'
+            ? `${appointments.length} personal scheduled, confirmed, and completed procedural sessions`
+            : `${appointments.length} total scheduled, confirmed, and completed procedural sessions`
+        }
         action={
-          <Button onClick={() => navigate('/scheduling')}>
-            + AI Smart Scheduler
-          </Button>
+          user?.role !== 'patient' ? (
+            <Button onClick={() => navigate('/scheduling')}>
+              + AI Smart Scheduler
+            </Button>
+          ) : null
         }
       />
 

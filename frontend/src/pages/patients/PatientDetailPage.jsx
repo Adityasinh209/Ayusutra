@@ -30,7 +30,14 @@ export default function PatientDetailPage() {
   const [error, setError] = useState(null)
   const [advancingStage, setAdvancingStage] = useState(false)
 
+  const isPatientViewingOther = user?.role === 'patient' && user?.patientId && user.patientId !== id
+
   async function loadData() {
+    if (isPatientViewingOther) {
+      setLoading(false)
+      setError('Access Restricted: You are only authorized to view your own patient profile.')
+      return
+    }
     try {
       const [p, emrs, appts, patientPlans] = await Promise.all([
         getPatient(id),
@@ -65,7 +72,7 @@ export default function PatientDetailPage() {
 
   useEffect(() => {
     loadData()
-  }, [id])
+  }, [id, isPatientViewingOther])
 
   async function handleAdvanceStage(planId, currentStage) {
     const stageSequence = ['Purva Karma', 'Pradhana Karma', 'Paschat Karma', 'Follow-up', 'Completed']
@@ -85,6 +92,19 @@ export default function PatientDetailPage() {
   }
 
   if (loading) return <PageSpinner />
+  if (isPatientViewingOther) {
+    return (
+      <div className="max-w-xl mx-auto py-12 space-y-4 text-center">
+        <Alert
+          type="error"
+          message="Privacy Protection: As a patient, you cannot view details of other patients."
+        />
+        <Button onClick={() => navigate(`/patients/${user.patientId}`)}>
+          Go to My Profile &amp; Treatment Plan
+        </Button>
+      </div>
+    )
+  }
   if (error) return <Alert message={error} />
   if (!patient) return null
 
@@ -96,7 +116,11 @@ export default function PatientDetailPage() {
       <PageHeader
         title={patient.fullName}
         subtitle={`${age} yrs · ${patient.gender} · Prakriti: ${patient.prakriti || 'N/A'} · Registered ${formatDate(patient.registeredAt)}`}
-        back={{ label: 'Patients Directory', onClick: () => navigate('/patients') }}
+        back={
+          user.role === 'patient'
+            ? { label: 'Dashboard', onClick: () => navigate('/dashboard') }
+            : { label: 'Patients Directory', onClick: () => navigate('/patients') }
+        }
         action={
           <div className="flex gap-2">
             {(user.role === 'doctor' || user.role === 'admin') && (

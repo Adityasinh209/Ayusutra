@@ -42,8 +42,14 @@ export default function AppRoutes() {
           }
         />
         <Route path="/dashboard" element={<AuthedRoute><DashboardPage /></AuthedRoute>} />
-        <Route path="/patients" element={<AuthedRoute><PatientsPage /></AuthedRoute>} />
-        <Route path="/patients/new" element={<AuthedRoute><NewPatientPage /></AuthedRoute>} />
+        <Route
+          path="/patients"
+          element={<AuthedRoute roles={['doctor', 'receptionist', 'admin']}><PatientsPage /></AuthedRoute>}
+        />
+        <Route
+          path="/patients/new"
+          element={<AuthedRoute roles={['doctor', 'receptionist', 'admin']}><NewPatientPage /></AuthedRoute>}
+        />
         <Route path="/patients/:id" element={<AuthedRoute><PatientDetailPage /></AuthedRoute>} />
 
         {/* Clinical Panchakarma Assessment & Planning */}
