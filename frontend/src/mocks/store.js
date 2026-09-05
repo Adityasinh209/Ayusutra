@@ -1,5 +1,5 @@
 /**
- * localStorage-backed store adapter for the Phase 1 prototype.
+ * localStorage-backed store adapter for the AyurSutra prototype.
  *
  * Each entity is stored as a JSON array under a namespaced key.
  * On first load the store is seeded from seed.js if it is empty.
@@ -19,6 +19,9 @@ import {
   THERAPY_ROOMS,
   EMR_RECORDS,
   APPOINTMENTS,
+  PANCHAKARMA_PLANS,
+  INVENTORY,
+  BILLING_ITEMS,
   CANDIDATE_SLOTS,
 } from './seed.js'
 
@@ -48,6 +51,9 @@ const SEEDS = {
   therapy_rooms: THERAPY_ROOMS,
   emr_records: EMR_RECORDS,
   appointments: APPOINTMENTS,
+  panchakarma_plans: PANCHAKARMA_PLANS,
+  inventory: INVENTORY,
+  billing: BILLING_ITEMS,
 }
 
 function init() {
@@ -56,7 +62,6 @@ function init() {
       save(entity, seed)
     }
   })
-  // candidate slots are not user-editable, keep in memory
 }
 
 init()
@@ -101,7 +106,7 @@ export function candidateSlotsFor(patientId, therapyId) {
   return CANDIDATE_SLOTS[k] ?? []
 }
 
-/** Hard reset — re-seeds all entities from scratch (useful for demos). */
+/** Hard reset — re-seeds all entities from scratch (useful for demo & resets). */
 export function resetStore() {
   Object.keys(SEEDS).forEach((entity) => {
     save(entity, SEEDS[entity])

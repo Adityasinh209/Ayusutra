@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { listPatients } from '../services/patients.js'
 import { listAppointments } from '../services/appointments.js'
-import Card from '../components/Card.jsx'
+import { listPlans } from '../services/plans.js'
+import { listTherapists } from '../services/therapists.js'
+import { listRooms } from '../services/rooms.js'
+import { listTherapies } from '../services/therapies.js'
+import Card, { CardHeader } from '../components/Card.jsx'
 import Badge from '../components/Badge.jsx'
 import Button from '../components/Button.jsx'
 import { PageSpinner } from '../components/Spinner.jsx'
@@ -13,94 +17,397 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [stats, setStats] = useState(null)
-  const [recentAppointments, setRecentAppointments] = useState([])
+  const [todaySessions, setTodaySessions] = useState([])
+  const [activePlans, setActivePlans] = useState([])
+  const [meta, setMeta] = useState({ patients: {}, therapies: {}, therapists: {}, rooms: {} })
 
   useEffect(() => {
     async function load() {
-      const [patients, appointments] = await Promise.all([listPatients(), listAppointments()])
+      const [patients, appointments, plans, therapists, rooms, therapies] = await Promise.all([
+        listPatients(),
+        listAppointments(),
+        listPlans(),
+        listTherapists(),
+        listRooms(),
+        listTherapies(),
+      ])
+
       const today = new Date().toISOString().slice(0, 10)
+      const todayAppts = appointments.filter((a) => a.date === today)
+
+      // Map lookups
+      const pMap = Object.fromEntries(patients.map((p) => [p.id, p]))
+      const tMap = Object.fromEntries(therapies.map((t) => [t.id, t]))
+      const thMap = Object.fromEntries(therapists.map((th) => [th.id, th]))
+      const rMap = Object.fromEntries(rooms.map((r) => [r.id, r]))
+      setMeta({ patients: pMap, therapies: tMap, therapists: thMap, rooms: rMap })
+
+      // Calculate Panchakarma Metrics
+      const activeTreatments = plans.filter((p) => p.status === 'In Progress' || p.status === 'Active')
+      const purvaKarmaCount = plans.filter((p) => p.treatmentStage === 'Purva Karma').length
+      const pradhanaKarmaToday = todayAppts.filter((a) => a.treatmentStage === 'Pradhana Karma').length
+      const paschatKarmaCount = plans.filter((p) => p.treatmentStage === 'Paschat Karma').length
+      const completedSessions = appointments.filter((a) => a.status === 'Completed').length
+      const pendingSessions = appointments.filter((a) => a.status === 'Scheduled' || a.status === 'Confirmed').length
+
+      const bookedTherapistIds = new Set(todayAppts.map((a) => a.therapistId))
+      const therapistUtilization = therapists.length > 0
+        ? Math.round((bookedTherapistIds.size / therapists.length) * 100)
+        : 0
+
+      const bookedRoomIds = new Set(todayAppts.map((a) => a.roomId))
+      const roomUtilization = rooms.length > 0
+        ? Math.round((bookedRoomIds.size / rooms.length) * 100)
+        : 0
+
+      const upcomingFollowUps = plans.filter((p) => p.followUpDate && p.followUpDate >= today).length
+
       setStats({
-        totalPatients: patients.length,
-        todayAppointments: appointments.filter((a) => a.date === today).length,
-        scheduled: appointments.filter((a) => a.status === 'Scheduled').length,
-        confirmed: appointments.filter((a) => a.status === 'Confirmed').length,
+        activeTreatments: activeTreatments.length,
+        todaySessionsCount: todayAppts.length,
+        pendingPurvaKarma: purvaKarmaCount,
+        todayPradhanaKarma: pradhanaKarmaToday,
+        patientsInPaschatKarma: paschatKarmaCount,
+        completedSessions,
+        pendingSessions,
+        therapistUtilization: `${therapistUtilization}%`,
+        roomUtilization: `${roomUtilization}%`,
+        upcomingFollowUps,
       })
-      setRecentAppointments(appointments.slice(0, 5))
+
+      setTodaySessions(todayAppts.length > 0 ? todayAppts : appointments.slice(0, 5))
+      setActivePlans(activeTreatments.slice(0, 4))
     }
     load()
   }, [])
 
   if (!stats) return <PageSpinner />
 
-  const greeting =
-    user.role === 'doctor'
-      ? 'Patient consultations and EMR updates are accessible from the sidebar.'
-      : user.role === 'receptionist'
-      ? 'Schedule therapy appointments from the Scheduling section.'
-      : 'View your upcoming appointments and therapy history.'
-
   const quickLinks =
     user.role === 'doctor'
       ? [
-          { label: 'New Consultation', to: '/consultation' },
-          { label: 'View Patients', to: '/patients' },
+          { label: '🩺 New Ayurvedic Assessment', to: '/consultation' },
+          { label: '🌿 Panchakarma Plans', to: '/plans' },
+          { label: '👥 Patient EMR Directory', to: '/patients' },
+          { label: '📋 Follow-up Reviews', to: '/followups' },
         ]
       : user.role === 'receptionist'
       ? [
-          { label: 'Register Patient', to: '/patients/new' },
-          { label: 'Schedule Therapy', to: '/scheduling' },
+          { label: '✨ AI Smart Scheduler', to: '/scheduling' },
+          { label: '👤 Register New Patient', to: '/patients/new' },
+          { label: '⏳ Therapy Sessions', to: '/appointments' },
+          { label: '💳 Package Billing', to: '/billing' },
+        ]
+      : user.role === 'therapist'
+      ? [
+          { label: '✋ My Assigned Sessions', to: '/therapist/sessions' },
+          { label: '🧪 Therapy Consumables', to: '/inventory' },
+          { label: '🤖 Panchakarma Assistant', to: '/assistant' },
+        ]
+      : user.role === 'admin'
+      ? [
+          { label: '🌿 Panchakarma Plans', to: '/plans' },
+          { label: '🏛️ Masters & Rooms', to: '/masters' },
+          { label: '🧪 Herbal Inventory', to: '/inventory' },
+          { label: '💳 Billing & Packages', to: '/billing' },
         ]
       : [
-          { label: 'My Appointments', to: '/appointments' },
-          { label: 'View My Profile', to: `/patients/${user.patientId ?? 'patient-1'}` },
+          { label: '⏳ My Therapy Sessions', to: '/appointments' },
+          { label: '🤖 Ask AyurSutra Assistant', to: '/assistant' },
         ]
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Good morning, {user.name.split(' ')[0]}</h1>
-        <p className="text-sm text-gray-500 mt-1">{greeting}</p>
+    <div className="space-y-6">
+      {/* Top Banner */}
+      <div className="bg-gradient-to-r from-emerald-800 to-teal-900 rounded-2xl p-6 text-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-700/80 text-[11px] font-semibold tracking-wide uppercase border border-emerald-500/30">
+              Panchakarma Center Console
+            </span>
+            <span className="text-xs text-emerald-200">AyurSutra v2.0</span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight">Namaste, {user.name}</h1>
+          <p className="text-xs text-emerald-100/80 mt-1 max-w-xl">
+            {user.role === 'doctor'
+              ? 'Dosha balance evaluation, Panchakarma stage management, and therapeutic clinical tracking.'
+              : user.role === 'therapist'
+              ? 'Track daily assigned therapy sessions, observe patient tissue responses, and log completions.'
+              : user.role === 'receptionist'
+              ? 'Coordinate patient intake, optimize therapy room turnovers, and schedule multi-stage therapies.'
+              : 'Holistic clinical oversight of therapies, room occupancy, therapist rosters, and inventory.'}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="!bg-white/10 !text-white !border-white/20 hover:!bg-white/20"
+            onClick={() => navigate('/assistant')}
+          >
+            🤖 AI Assistant
+          </Button>
+          {(user.role === 'doctor' || user.role === 'admin') && (
+            <Button
+              size="sm"
+              className="!bg-emerald-500 hover:!bg-emerald-400 !text-white border-0 shadow-sm"
+              onClick={() => navigate('/consultation')}
+            >
+              + New Assessment
+            </Button>
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Total Patients" value={stats.totalPatients} />
-        <StatCard label="Today's Appointments" value={stats.todayAppointments} />
-        <StatCard label="Scheduled" value={stats.scheduled} />
-        <StatCard label="Confirmed" value={stats.confirmed} />
+      {/* Panchakarma Specific KPIs */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-bold text-stone-600 uppercase tracking-wider">
+            Panchakarma Clinical Operations KPIs
+          </h2>
+          <span className="text-[11px] text-stone-400">Live Stage &amp; Facility Metrics</span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+          <StatCard
+            label="Active Treatments"
+            value={stats.activeTreatments}
+            sub="Under active protocol"
+            icon="🌿"
+            highlight
+          />
+          <StatCard
+            label="Today's Sessions"
+            value={stats.todaySessionsCount}
+            sub={`${stats.pendingSessions} pending`}
+            icon="⏳"
+          />
+          <StatCard
+            label="In Purva Karma"
+            value={stats.pendingPurvaKarma}
+            sub="Snehana & Swedana"
+            icon="🪔"
+          />
+          <StatCard
+            label="Today's Pradhana Karma"
+            value={stats.todayPradhanaKarma}
+            sub="Basti / Nasya / Vamana"
+            icon="🔥"
+          />
+          <StatCard
+            label="In Paschat Karma"
+            value={stats.patientsInPaschatKarma}
+            sub="Diet & Samsarjana"
+            icon="🥣"
+          />
+          <StatCard
+            label="Sessions Completed"
+            value={stats.completedSessions}
+            sub="Lifetime prototype total"
+            icon="✅"
+          />
+          <StatCard
+            label="Therapist Utilization"
+            value={stats.therapistUtilization}
+            sub="Rostered workload"
+            icon="✋"
+          />
+          <StatCard
+            label="Room Utilization"
+            value={stats.roomUtilization}
+            sub="Shala & Kutir occupancy"
+            icon="🏛️"
+          />
+          <StatCard
+            label="Pending Sessions"
+            value={stats.pendingSessions}
+            sub="Scheduled ahead"
+            icon="📅"
+          />
+          <StatCard
+            label="Upcoming Follow-ups"
+            value={stats.upcomingFollowUps}
+            sub="Post-Karma review"
+            icon="📋"
+          />
+        </div>
       </div>
 
+      {/* Main Grid: Sessions Queue + Plans Progress + Actions */}
       <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        {/* Left 2 Cols: Today's Sessions & Plans */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Today's Therapy Sessions */}
           <Card>
-            <h2 className="text-sm font-semibold text-gray-700 mb-4">Recent Appointments</h2>
-            {recentAppointments.length === 0 ? (
-              <p className="text-sm text-gray-400">No appointments yet.</p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-stone-900">Today's Therapy Sessions Queue</h3>
+                <p className="text-xs text-stone-500">Therapy room assignments, therapist, and clinical stage</p>
+              </div>
+              <Button size="xs" variant="ghost" onClick={() => navigate('/appointments')}>
+                View All →
+              </Button>
+            </div>
+
+            {todaySessions.length === 0 ? (
+              <p className="text-xs text-stone-400 py-4 text-center">No therapy sessions scheduled for today.</p>
             ) : (
-              <div className="space-y-3">
-                {recentAppointments.map((a) => (
-                  <div key={a.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">{formatDate(a.date)}</p>
-                      <p className="text-xs text-gray-400">{formatTime(a.startTime)} – {formatTime(a.endTime)}</p>
+              <div className="space-y-2.5">
+                {todaySessions.map((a) => {
+                  const patient = meta.patients[a.patientId]
+                  const therapy = meta.therapies[a.therapyId]
+                  const therapist = meta.therapists[a.therapistId]
+                  const room = meta.rooms[a.roomId]
+
+                  return (
+                    <div
+                      key={a.id}
+                      className="p-3 rounded-xl border border-stone-100 bg-stone-50/50 hover:bg-stone-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm text-stone-900">
+                            {patient?.fullName || 'Patient'}
+                          </span>
+                          <span className="text-xs text-stone-400">·</span>
+                          <span className="text-xs font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                            {therapy?.name || 'Therapy'}
+                          </span>
+                          {a.sessionNumber && (
+                            <span className="text-[10px] text-stone-500 font-medium">
+                              Session #{a.sessionNumber}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500">
+                          <span>🕒 {formatTime(a.startTime)} – {formatTime(a.endTime)}</span>
+                          <span>🏛️ {room?.name || 'Room'}</span>
+                          <span>✋ {therapist?.name || 'Therapist'}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-start sm:self-center">
+                        <span
+                          className={`text-[11px] px-2.5 py-1 rounded-full font-medium ${
+                            a.treatmentStage === 'Pradhana Karma'
+                              ? 'bg-amber-100 text-amber-800'
+                              : a.treatmentStage === 'Paschat Karma'
+                              ? 'bg-purple-100 text-purple-800'
+                              : 'bg-blue-100 text-blue-800'
+                          }`}
+                        >
+                          {a.treatmentStage || 'Purva Karma'}
+                        </span>
+                        <Badge label={a.status} />
+                      </div>
                     </div>
-                    <Badge label={a.status} />
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </Card>
+
+          {/* Active Panchakarma Treatment Plans */}
+          <Card>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-stone-900">Active Panchakarma Treatment Plans</h3>
+                <p className="text-xs text-stone-500">Progress through Purva, Pradhana, and Paschat Karma</p>
+              </div>
+              <Button size="xs" variant="ghost" onClick={() => navigate('/plans')}>
+                View All Plans →
+              </Button>
+            </div>
+
+            <div className="space-y-3">
+              {activePlans.map((plan) => {
+                const patient = meta.patients[plan.patientId]
+                const therapist = meta.therapists[plan.assignedTherapistId]
+                const progress = Math.round(((plan.completedSessions || 0) / (plan.totalSessions || 1)) * 100)
+
+                return (
+                  <div key={plan.id} className="p-3.5 rounded-xl border border-stone-200 bg-white space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="font-semibold text-sm text-stone-900">{patient?.fullName}</span>
+                        <span className="text-xs text-stone-500 ml-2">({patient?.prakriti || 'Prakriti N/A'})</span>
+                        <p className="text-xs text-emerald-800 font-medium mt-0.5">
+                          {plan.procedureName || plan.primaryPanchakarma}
+                        </p>
+                      </div>
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-medium border border-emerald-200">
+                        {plan.treatmentStage}
+                      </span>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div>
+                      <div className="flex justify-between text-[11px] text-stone-500 mb-1">
+                        <span>Sessions: {plan.completedSessions} of {plan.totalSessions} completed</span>
+                        <span className="font-medium text-stone-700">{progress}%</span>
+                      </div>
+                      <div className="w-full bg-stone-100 rounded-full h-2 overflow-hidden">
+                        <div
+                          className="bg-emerald-600 h-2 rounded-full transition-all"
+                          style={{ width: `${Math.min(progress, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-stone-400 pt-1 border-t border-stone-100">
+                      <span>Therapist: {therapist?.name || 'Assigned Vaidya team'}</span>
+                      {plan.followUpDate && <span>Follow-up: {formatDate(plan.followUpDate)}</span>}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </Card>
         </div>
 
-        <div>
+        {/* Right Col: Quick Actions & Stage Workflow Guide */}
+        <div className="space-y-6">
           <Card>
-            <h2 className="text-sm font-semibold text-gray-700 mb-4">Quick Actions</h2>
+            <CardHeader title="Clinical Quick Actions" subtitle="Role-specific tasks" />
             <div className="flex flex-col gap-2">
               {quickLinks.map((l) => (
-                <Button key={l.to} variant="secondary" size="sm" onClick={() => navigate(l.to)}>
-                  {l.label}
-                </Button>
+                <button
+                  key={l.to}
+                  onClick={() => navigate(l.to)}
+                  className="w-full text-left px-3.5 py-2.5 rounded-lg border border-stone-200 hover:border-emerald-500 hover:bg-emerald-50/50 text-xs font-semibold text-stone-800 transition-all cursor-pointer flex items-center justify-between"
+                >
+                  <span>{l.label}</span>
+                  <span className="text-stone-400 text-sm">→</span>
+                </button>
               ))}
             </div>
+          </Card>
+
+          {/* Panchakarma Clinical Workflow Guide */}
+          <Card className="bg-gradient-to-br from-emerald-50/50 to-stone-50 border-emerald-200">
+            <h3 className="text-xs font-bold text-emerald-900 uppercase tracking-wider mb-2">
+              Panchakarma Stage Progression
+            </h3>
+            <p className="text-xs text-stone-600 leading-relaxed mb-3">
+              Standard clinical continuum maintained across all therapy courses:
+            </p>
+            <ol className="space-y-2 text-xs text-stone-700">
+              <li className="flex items-start gap-2">
+                <span className="font-bold text-emerald-700">1.</span>
+                <span><strong>Purva Karma:</strong> Deepana, Pachana, Snehana (Abhyanga), and Swedana to liquefy Ama.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold text-emerald-700">2.</span>
+                <span><strong>Pradhana Karma:</strong> Primary elimination (Basti, Nasya, Vamana, Virechana).</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold text-emerald-700">3.</span>
+                <span><strong>Paschat Karma:</strong> Samsarjana Krama (graduated diet), Rasayana rejuvenation &amp; lifestyle.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold text-emerald-700">4.</span>
+                <span><strong>Follow-up:</strong> Nadi assessment, Dosha re-evaluation, and post-cleanse stabilization.</span>
+              </li>
+            </ol>
           </Card>
         </div>
       </div>
@@ -108,11 +415,21 @@ export default function DashboardPage() {
   )
 }
 
-function StatCard({ label, value }) {
+function StatCard({ label, value, sub, icon, highlight }) {
   return (
-    <Card>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-      <p className="text-xs text-gray-500 mt-1">{label}</p>
-    </Card>
+    <div
+      className={`p-3.5 rounded-xl border transition-all ${
+        highlight
+          ? 'bg-emerald-50/80 border-emerald-300 shadow-xs'
+          : 'bg-white border-stone-200'
+      }`}
+    >
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-lg">{icon}</span>
+        <span className="text-xl font-bold text-stone-900">{value}</span>
+      </div>
+      <p className="text-xs font-semibold text-stone-700 leading-tight">{label}</p>
+      {sub && <p className="text-[10px] text-stone-400 mt-0.5 truncate">{sub}</p>}
+    </div>
   )
 }

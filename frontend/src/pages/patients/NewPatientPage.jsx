@@ -16,8 +16,14 @@ const INITIAL = {
   phone: '',
   email: '',
   address: '',
-  medicalHistory: '',
   emergencyContact: '',
+  prakriti: 'Vata-Pitta',
+  vikriti: '',
+  agniType: 'Vishama Agni (Irregular)',
+  koshtaType: 'Madhyama (Moderate)',
+  chiefComplaint: '',
+  medicalHistory: '',
+  allergies: '',
 }
 
 export default function NewPatientPage() {
@@ -59,17 +65,22 @@ export default function NewPatientPage() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-3xl space-y-6">
       <PageHeader
-        title="Register Patient"
-        back={{ label: 'Patients', onClick: () => navigate('/patients') }}
+        title="Register Panchakarma Patient"
+        subtitle="Record patient demographics and baseline Ayurvedic constitution profile"
+        back={{ label: 'Patients Directory', onClick: () => navigate('/patients') }}
       />
 
       {submitError && <Alert message={submitError} onClose={() => setSubmitError(null)} className="mb-4" />}
 
-      <Card>
-        <form onSubmit={handleSubmit} noValidate className="space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
+        {/* Demographics */}
+        <Card>
+          <h3 className="text-sm font-bold text-stone-800 mb-4 pb-2 border-b border-stone-100">
+            1. Personal Demographics &amp; Contact
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="Full Name" error={errors.fullName} required>
               <Input
                 value={form.fullName}
@@ -113,7 +124,7 @@ export default function NewPatientPage() {
                 error={errors.email}
               />
             </FormField>
-            <FormField label="Emergency Contact" error={errors.emergencyContact} required hint="Name and phone number">
+            <FormField label="Emergency Contact" error={errors.emergencyContact} required hint="Name & phone number">
               <Input
                 value={form.emergencyContact}
                 onChange={(e) => set('emergencyContact', e.target.value)}
@@ -121,33 +132,93 @@ export default function NewPatientPage() {
                 error={errors.emergencyContact}
               />
             </FormField>
+            <div className="sm:col-span-2">
+              <FormField label="Residential Address" error={errors.address} required>
+                <Input
+                  value={form.address}
+                  onChange={(e) => set('address', e.target.value)}
+                  placeholder="Street, locality, city, pin code"
+                  error={errors.address}
+                />
+              </FormField>
+            </div>
           </div>
+        </Card>
 
-          <FormField label="Address" error={errors.address} required>
-            <Textarea
-              value={form.address}
-              onChange={(e) => set('address', e.target.value)}
-              placeholder="Street, City, PIN"
-              error={errors.address}
-              rows={2}
-            />
-          </FormField>
-
-          <FormField label="Medical History" hint="Existing conditions, allergies, medications">
-            <Textarea
-              value={form.medicalHistory}
-              onChange={(e) => set('medicalHistory', e.target.value)}
-              placeholder="Relevant medical background…"
-              rows={3}
-            />
-          </FormField>
-
-          <div className="flex gap-3 pt-2">
-            <Button type="submit" loading={loading}>Register Patient</Button>
-            <Button type="button" variant="secondary" onClick={() => navigate('/patients')}>Cancel</Button>
+        {/* Ayurvedic Constitutional Assessment */}
+        <Card>
+          <h3 className="text-sm font-bold text-stone-800 mb-4 pb-2 border-b border-stone-100">
+            2. Ayurvedic Baseline Profile (Prakriti &amp; Physiology)
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormField label="Prakriti (Constitutional Dominance)">
+              <Select value={form.prakriti} onChange={(e) => set('prakriti', e.target.value)}>
+                <option value="Vata">Vata (Ether & Air)</option>
+                <option value="Pitta">Pitta (Fire & Water)</option>
+                <option value="Kapha">Kapha (Water & Earth)</option>
+                <option value="Vata-Pitta">Vata-Pitta</option>
+                <option value="Pitta-Vata">Pitta-Vata</option>
+                <option value="Pitta-Kapha">Pitta-Kapha</option>
+                <option value="Kapha-Pitta">Kapha-Pitta</option>
+                <option value="Kapha-Vata">Kapha-Vata</option>
+                <option value="Vata-Kapha">Vata-Kapha</option>
+                <option value="Tridoshic (Sama)">Tridoshic (Balanced)</option>
+              </Select>
+            </FormField>
+            <FormField label="Agni (Digestive Capacity)">
+              <Select value={form.agniType} onChange={(e) => set('agniType', e.target.value)}>
+                <option value="Sama Agni (Balanced)">Sama Agni (Balanced metabolism)</option>
+                <option value="Vishama Agni (Irregular)">Vishama Agni (Vata - erratic/bloating)</option>
+                <option value="Tikshna Agni (Hyperactive)">Tikshna Agni (Pitta - intense/hyperacidity)</option>
+                <option value="Manda Agni (Sluggish)">Manda Agni (Kapha - heavy/slow)</option>
+              </Select>
+            </FormField>
+            <FormField label="Koshta (Bowel Tendency)">
+              <Select value={form.koshtaType} onChange={(e) => set('koshtaType', e.target.value)}>
+                <option value="Krura (Hard/Dry Bowel)">Krura (Constipated / requires strong purgation)</option>
+                <option value="Madhyama (Moderate)">Madhyama (Normal daily evacuation)</option>
+                <option value="Mridu (Soft/Sensitive Bowel)">Mridu (Sensitive / mild laxative response)</option>
+              </Select>
+            </FormField>
+            <FormField label="Known Allergies / Sensitivities">
+              <Input
+                value={form.allergies}
+                onChange={(e) => set('allergies', e.target.value)}
+                placeholder="e.g. Sesame oil allergy, dust, pollen"
+              />
+            </FormField>
+            <div className="sm:col-span-2">
+              <FormField label="Chief Health Complaint" hint="Primary reason seeking Panchakarma care">
+                <Textarea
+                  value={form.chiefComplaint}
+                  onChange={(e) => set('chiefComplaint', e.target.value)}
+                  placeholder="Describe primary symptoms, duration, aggravators..."
+                  rows={2}
+                />
+              </FormField>
+            </div>
+            <div className="sm:col-span-2">
+              <FormField label="Past Medical History" hint="Surgeries, chronic conditions, medications">
+                <Textarea
+                  value={form.medicalHistory}
+                  onChange={(e) => set('medicalHistory', e.target.value)}
+                  placeholder="Hypertension, diabetes, past fractures..."
+                  rows={2}
+                />
+              </FormField>
+            </div>
           </div>
-        </form>
-      </Card>
+        </Card>
+
+        <div className="flex gap-3">
+          <Button type="submit" loading={loading}>
+            Save &amp; Open Profile
+          </Button>
+          <Button type="button" variant="secondary" onClick={() => navigate('/patients')}>
+            Cancel
+          </Button>
+        </div>
+      </form>
     </div>
   )
 }
