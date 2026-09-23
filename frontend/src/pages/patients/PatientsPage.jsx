@@ -15,7 +15,7 @@ const COLUMNS = [
     render: (r) => (
       <div>
         <span className="font-bold text-stone-900 text-xs block">{r.fullName}</span>
-        <span className="text-[11px] text-stone-400">{r.phone}</span>
+        <span className="text-[10.5px] text-stone-400">{r.phone}</span>
       </div>
     ),
   },

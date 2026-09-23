@@ -63,6 +63,27 @@ function isTherapistOnLeave(leaves, date) {
   return leaves.some((l) => date >= l.startDate && date <= l.endDate)
 }
 
+function getLiveDateStr(d = new Date()) {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function getLiveTimeStr(d = new Date()) {
+  const hours = String(d.getHours()).padStart(2, '0')
+  const minutes = String(d.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+function addMinutes(timeStr, mins) {
+  const [h, m] = timeStr.split(':').map(Number)
+  const total = h * 60 + m + mins
+  const newH = Math.floor(total / 60)
+  const newM = total % 60
+  return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`
+}
+
 /**
  * Recommends valid, constraint-checked slots for a patient and therapy.
  */
@@ -79,31 +100,53 @@ export async function recommendSlots({ patientId, therapyId, preferredDate = '',
 
   if (!therapy) return []
 
-  // Check pre-configured candidate slots
-  let rawSlots = candidateSlotsFor(patientId, therapyId)
+  const now = new Date()
+  const todayStr = getLiveDateStr(now)
+  const currentTimeStr = getLiveTimeStr(now)
 
-  // If no seeded candidate slots match this exact pair, synthesize verified candidate slots
-  if (!rawSlots.length) {
-    const targetDate = preferredDate || new Date(Date.now() + 86400000).toISOString().slice(0, 10)
-    const qualifiedTherapists = allTherapists.filter((th) => isTherapistQualified(th, therapy))
-    const suitableRooms = allRooms.filter((rm) => isRoomCompatible(rm, therapy))
+  // Candidate time windows based on preference
+  const morningTimes = ['08:00', '09:30', '11:00']
+  const afternoonTimes = ['13:00', '14:30', '16:00', '17:30']
+  let baseTimes = []
+  if (preferredTime === 'morning') {
+    baseTimes = morningTimes
+  } else if (preferredTime === 'afternoon') {
+    baseTimes = afternoonTimes
+  } else {
+    baseTimes = ['08:30', '10:00', '11:30', '14:00', '15:30', '17:00']
+  }
 
-    const generated = []
+  let targetDate = preferredDate
+  if (!targetDate) {
+    const remainingToday = baseTimes.filter((t) => t > currentTimeStr)
+    if (remainingToday.length > 0) {
+      targetDate = todayStr
+    } else {
+      const tomorrow = new Date(now.getTime() + 86400000)
+      targetDate = getLiveDateStr(tomorrow)
+    }
+  }
+
+  const qualifiedTherapists = allTherapists.filter((th) => isTherapistQualified(th, therapy))
+  const suitableRooms = allRooms.filter((rm) => isRoomCompatible(rm, therapy))
+  const dur = therapy.defaultDurationMins || 60
+
+  const candidateTimes = baseTimes.filter((t) => {
+    if (targetDate === todayStr) {
+      return t > currentTimeStr
+    }
+    return true
+  })
+
+  let rawSlots = []
+
+  for (const startH of candidateTimes) {
+    const endH = addMinutes(startH, dur)
     for (const therapist of qualifiedTherapists) {
       const leaves = await getLeaves(therapist.id)
       if (isTherapistOnLeave(leaves, targetDate)) continue
 
       for (const room of suitableRooms) {
-        // Build a morning slot if matching preference
-        const startH = preferredTime === 'afternoon' ? '14:00' : '09:00'
-        const dur = therapy.defaultDurationMins || 60
-        const endH = dur === 90 ? (preferredTime === 'afternoon' ? '15:30' : '10:30')
-          : dur === 45 ? (preferredTime === 'afternoon' ? '14:45' : '09:45')
-          : dur === 30 ? (preferredTime === 'afternoon' ? '14:30' : '09:30')
-          : dur === 120 ? (preferredTime === 'afternoon' ? '16:00' : '11:00')
-          : (preferredTime === 'afternoon' ? '15:00' : '10:00')
-
-        // Check for conflicting appointment in that room or therapist
         const hasConflict = existingAppts.some(
           (a) => a.date === targetDate && a.status !== 'Cancelled' &&
             (a.roomId === room.id || a.therapistId === therapist.id) &&
@@ -111,8 +154,8 @@ export async function recommendSlots({ patientId, therapyId, preferredDate = '',
         )
 
         if (!hasConflict) {
-          generated.push({
-            id: `slot-gen-${therapist.id}-${room.id}`,
+          rawSlots.push({
+            id: `slot-live-${therapist.id}-${room.id}-${startH.replace(':', '')}`,
             therapistId: therapist.id,
             roomId: room.id,
             date: targetDate,
@@ -120,15 +163,54 @@ export async function recommendSlots({ patientId, therapyId, preferredDate = '',
             endTime: endH,
             therapistWorkload: existingAppts.filter((a) => a.date === targetDate && a.therapistId === therapist.id).length,
             treatmentStage: therapy.stage || 'Purva Karma',
-            recommended: generated.length === 0,
-            reason: `${therapist.name} is a certified specialist for ${therapy.name}. Room "${room.name}" satisfies ${therapy.requiredRoomType || 'facility'} specifications. Scheduled within classical timing window for ${patient?.prakriti || 'Ayurvedic'} balance.`,
+            recommended: rawSlots.length === 0,
+            reason: `${therapist.name} is a certified specialist for ${therapy.name}. Room "${room.name}" satisfies ${therapy.requiredRoomType || 'facility'} specifications. Scheduled for ${startH} within classical window for ${patient?.prakriti || 'Ayurvedic'} balance.`,
           })
-          if (generated.length >= 3) break
+          if (rawSlots.length >= 4) break
         }
       }
-      if (generated.length >= 3) break
+      if (rawSlots.length >= 4) break
     }
-    rawSlots = generated
+    if (rawSlots.length >= 4) break
+  }
+
+  // If no slots found for today and no preferred date was pinned, fallback to tomorrow
+  if (rawSlots.length === 0 && !preferredDate) {
+    const tomorrow = new Date(now.getTime() + 86400000)
+    const nextDate = getLiveDateStr(tomorrow)
+    for (const startH of baseTimes) {
+      const endH = addMinutes(startH, dur)
+      for (const therapist of qualifiedTherapists) {
+        const leaves = await getLeaves(therapist.id)
+        if (isTherapistOnLeave(leaves, nextDate)) continue
+
+        for (const room of suitableRooms) {
+          const hasConflict = existingAppts.some(
+            (a) => a.date === nextDate && a.status !== 'Cancelled' &&
+              (a.roomId === room.id || a.therapistId === therapist.id) &&
+              ((startH >= a.startTime && startH < a.endTime) || (endH > a.startTime && endH <= a.endTime)),
+          )
+
+          if (!hasConflict) {
+            rawSlots.push({
+              id: `slot-live-${therapist.id}-${room.id}-${startH.replace(':', '')}`,
+              therapistId: therapist.id,
+              roomId: room.id,
+              date: nextDate,
+              startTime: startH,
+              endTime: endH,
+              therapistWorkload: existingAppts.filter((a) => a.date === nextDate && a.therapistId === therapist.id).length,
+              treatmentStage: therapy.stage || 'Purva Karma',
+              recommended: rawSlots.length === 0,
+              reason: `${therapist.name} is a certified specialist for ${therapy.name}. Room "${room.name}" satisfies ${therapy.requiredRoomType || 'facility'} specifications. Scheduled on ${nextDate} at ${startH}.`,
+            })
+            if (rawSlots.length >= 4) break
+          }
+        }
+        if (rawSlots.length >= 4) break
+      }
+      if (rawSlots.length >= 4) break
+    }
   }
 
   // Enrich and enforce constraint validation
@@ -151,7 +233,9 @@ export async function recommendSlots({ patientId, therapyId, preferredDate = '',
            (slot.endTime > a.startTime && slot.endTime <= a.endTime)),
       )
 
-      const isValid = validSpecialization && validRoom && !onLeave && !hasConflict
+      // Ensure slot is not in the past
+      const isPast = slot.date < todayStr || (slot.date === todayStr && slot.startTime <= currentTimeStr)
+      const isValid = validSpecialization && validRoom && !onLeave && !hasConflict && !isPast
 
       return {
         ...slot,
@@ -165,6 +249,7 @@ export async function recommendSlots({ patientId, therapyId, preferredDate = '',
           roomTypeMatched: validRoom,
           therapistAvailable: !onLeave,
           noScheduleConflict: !hasConflict,
+          notInPast: !isPast,
         },
       }
     }),

@@ -5,6 +5,7 @@ import AppLayout from '../layouts/AppLayout.jsx'
 import AuthLayout from '../layouts/AuthLayout.jsx'
 import { PageSpinner } from '../components/Spinner.jsx'
 
+const LandingPage = lazy(() => import('../pages/LandingPage.jsx'))
 const LoginPage = lazy(() => import('../pages/LoginPage.jsx'))
 const DashboardPage = lazy(() => import('../pages/DashboardPage.jsx'))
 const PatientsPage = lazy(() => import('../pages/patients/PatientsPage.jsx'))
@@ -33,6 +34,10 @@ export default function AppRoutes() {
   return (
     <Suspense fallback={<PageSpinner />}>
       <Routes>
+        {/* Public landing page */}
+        <Route path="/" element={<LandingPage />} />
+
+        {/* Auth */}
         <Route
           path="/login"
           element={
@@ -41,6 +46,7 @@ export default function AppRoutes() {
             </AuthLayout>
           }
         />
+
         <Route path="/dashboard" element={<AuthedRoute><DashboardPage /></AuthedRoute>} />
         <Route
           path="/patients"
@@ -94,11 +100,10 @@ export default function AppRoutes() {
         />
         <Route
           path="/assistant"
-          element={<AuthedRoute><AssistantPage /></AuthedRoute>}
+          element={<AuthedRoute roles={['patient', 'admin']}><AssistantPage /></AuthedRoute>}
         />
 
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
   )

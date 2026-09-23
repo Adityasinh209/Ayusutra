@@ -117,7 +117,7 @@ export default function BillingPage() {
       render: (r) => (
         <div>
           <span className="font-bold text-stone-900 text-xs block">{r.invoiceNumber}</span>
-          <span className="text-[11px] text-stone-500">{formatDate(r.date)}</span>
+          <span className="text-[10.5px] text-stone-500">{formatDate(r.date)}</span>
         </div>
       ),
     },
@@ -129,7 +129,7 @@ export default function BillingPage() {
           <span className="font-bold text-stone-800 text-xs block">
             {patientMap[r.patientId]?.fullName || 'Patient'}
           </span>
-          <span className="text-[10px] text-stone-400">
+          <span className="text-[9.5px] text-stone-400">
             {patientMap[r.patientId]?.phone}
           </span>
         </div>
@@ -141,7 +141,7 @@ export default function BillingPage() {
       render: (r) => (
         <div>
           <span className="text-xs font-semibold text-emerald-900 block">{r.packageType}</span>
-          <span className="text-[10px] text-stone-500">Method: {r.paymentMethod}</span>
+          <span className="text-[9.5px] text-stone-500">Method: {r.paymentMethod}</span>
         </div>
       ),
     },
@@ -152,7 +152,7 @@ export default function BillingPage() {
         <div className="text-xs">
           <span className="font-bold text-stone-900">₹{r.totalAmount?.toLocaleString()}</span>
           {r.discount > 0 && (
-            <span className="text-[10px] text-emerald-700 block">Saved ₹{r.discount}</span>
+            <span className="text-[9.5px] text-emerald-700 block">Saved ₹{r.discount}</span>
           )}
         </div>
       ),

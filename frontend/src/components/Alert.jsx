@@ -5,10 +5,10 @@ const STYLES = {
   warning: 'bg-amber-50 border-amber-200 text-amber-800',
 }
 
-export default function Alert({ type = 'error', message, onClose }) {
+export default function Alert({ type = 'error', message, onClose, className = '' }) {
   if (!message) return null
   return (
-    <div className={`flex items-start gap-3 rounded-md border px-4 py-3 text-sm ${STYLES[type]}`} role="alert">
+    <div className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${STYLES[type]} ${className}`} role="alert">
       <span className="flex-1">{message}</span>
       {onClose && (
         <button onClick={onClose} className="shrink-0 opacity-60 hover:opacity-100 cursor-pointer text-lg leading-none">

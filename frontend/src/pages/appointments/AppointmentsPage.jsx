@@ -88,7 +88,7 @@ export default function AppointmentsPage() {
                 >
                   {patients[r.patientId]?.fullName ?? 'Patient'}
                 </button>
-                <span className="text-[10px] text-stone-400 block">
+                <span className="text-[9.5px] text-stone-400 block">
                   {patients[r.patientId]?.prakriti || 'Vata-Pitta'}
                 </span>
               </div>
@@ -106,7 +106,7 @@ export default function AppointmentsPage() {
           </span>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span
-              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+              className={`text-[9.5px] font-semibold px-2 py-0.5 rounded-full ${
                 r.treatmentStage === 'Pradhana Karma'
                   ? 'bg-amber-100 text-amber-900'
                   : r.treatmentStage === 'Paschat Karma'
@@ -117,7 +117,7 @@ export default function AppointmentsPage() {
               {r.treatmentStage || 'Purva Karma'}
             </span>
             {r.sessionNumber && (
-              <span className="text-[10px] text-stone-500 font-medium">
+              <span className="text-[9.5px] text-stone-500 font-medium">
                 #{r.sessionNumber}
               </span>
             )}
@@ -130,8 +130,8 @@ export default function AppointmentsPage() {
       label: 'Therapist & Room',
       render: (r) => (
         <div className="text-xs">
-          <span className="font-medium text-stone-800 block">✋ {therapists[r.therapistId]?.name ?? '—'}</span>
-          <span className="text-[11px] text-stone-500 block">🏛️ {rooms[r.roomId]?.name ?? '—'}</span>
+          <span className="font-medium text-stone-800 block"> {therapists[r.therapistId]?.name ?? '—'}</span>
+          <span className="text-[10.5px] text-stone-500 block"> {rooms[r.roomId]?.name ?? '—'}</span>
         </div>
       ),
     },
@@ -154,7 +154,7 @@ export default function AppointmentsPage() {
       key: 'observations',
       label: 'Clinical Notes',
       render: (r) => (
-        <div className="text-[11px] text-stone-600 max-w-xs">
+        <div className="text-[10.5px] text-stone-600 max-w-xs">
           {r.sessionNotes || r.therapistObservations ? (
             <span className="line-clamp-2">{r.sessionNotes || r.therapistObservations}</span>
           ) : (
@@ -197,13 +197,6 @@ export default function AppointmentsPage() {
           user?.role === 'patient'
             ? `${appointments.length} personal scheduled, confirmed, and completed procedural sessions`
             : `${appointments.length} total scheduled, confirmed, and completed procedural sessions`
-        }
-        action={
-          user?.role !== 'patient' ? (
-            <Button onClick={() => navigate('/scheduling')}>
-              + AI Smart Scheduler
-            </Button>
-          ) : null
         }
       />
 

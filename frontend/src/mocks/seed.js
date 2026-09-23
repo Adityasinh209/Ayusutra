@@ -62,7 +62,7 @@ export const USERS = [
     password: 'Admin@123',
     role: 'admin',
     roleLabel: 'Center Administrator',
-    active: true,
+    active: false, // Admin role removed from public login
   },
 ]
 

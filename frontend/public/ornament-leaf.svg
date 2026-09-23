@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120" width="200" height="120">
+  <defs>
+    <linearGradient id="leafGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2d6a4f;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#40916c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#52b788;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="leafGradientLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a8d5ba;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#74c69d;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#40916c;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Main large leaf -->
+  <path d="M100 10 Q70 30 40 55 Q20 75 15 95 Q25 105 50 108 Q80 110 100 115 Q120 110 150 108 Q175 105 185 95 Q180 75 160 55 Q130 30 100 10" 
+        fill="url(#leafGradient)" opacity="0.15"/>
+  
+  <!-- Medium leaf -->
+  <path d="M160 20 Q140 35 120 50 Q105 62 100 72 Q105 62 110 55 Q125 45 140 35 Q155 28 160 20" 
+        fill="url(#leafGradientLight)" opacity="0.12"/>
+  
+  <!-- Small leaf accent -->
+  <path d="M45 35 Q35 45 30 55 Q28 62 35 68 Q45 72 55 68 Q62 62 60 55 Q55 45 45 35" 
+        fill="#40916c" opacity="0.1"/>
+  
+  <!-- Vine curl -->
+  <path d="M100 115 Q130 110 150 90 Q165 75 170 55" 
+        stroke="#40916c" stroke-width="2" fill="none" opacity="0.15" stroke-linecap="round"/>
+  
+  <path d="M100 115 Q70 110 50 90 Q35 75 30 55" 
+        stroke="#40916c" stroke-width="2" fill="none" opacity="0.15" stroke-linecap="round"/>
+  
+  <!-- Small decorative leaves on vines -->
+  <ellipse cx="155" cy="85" rx="6" ry="3" fill="#52b788" opacity="0.2" transform="rotate(-30 155 85)"/>
+  <ellipse cx="45" cy="85" rx="6" ry="3" fill="#52b788" opacity="0.2" transform="rotate(30 45 85)"/>
+</svg>

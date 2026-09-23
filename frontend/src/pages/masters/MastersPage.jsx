@@ -16,7 +16,7 @@ const THERAPY_COLS = [
     render: (r) => (
       <div>
         <span className="font-bold text-stone-900 block">{r.name}</span>
-        <span className="text-[11px] text-stone-500 line-clamp-1">{r.description}</span>
+        <span className="text-[10.5px] text-stone-500 line-clamp-1">{r.description}</span>
       </div>
     ),
   },
@@ -26,7 +26,7 @@ const THERAPY_COLS = [
     render: (r) => (
       <div>
         <span
-          className={`text-[11px] font-bold px-2 py-0.5 rounded-full inline-block ${
+          className={`text-[10.5px] font-bold px-2 py-0.5 rounded-full inline-block ${
             r.category === 'Panchakarma Procedure'
               ? 'bg-amber-100 text-amber-900 border border-amber-200'
               : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
@@ -34,7 +34,7 @@ const THERAPY_COLS = [
         >
           {r.category || 'Therapy'}
         </span>
-        <span className="text-[10px] text-stone-500 block mt-0.5">{r.stage || 'Purva Karma'}</span>
+        <span className="text-[9.5px] text-stone-500 block mt-0.5">{r.stage || 'Purva Karma'}</span>
       </div>
     ),
   },
@@ -44,7 +44,7 @@ const THERAPY_COLS = [
     render: (r) => (
       <div className="text-xs text-stone-700">
         <span className="font-semibold">{r.defaultDurationMins} min</span>
-        <span className="text-stone-400 block text-[10px]">{r.defaultSessionCount || 7} sessions</span>
+        <span className="text-stone-400 block text-[9.5px]">{r.defaultSessionCount || 7} sessions</span>
       </div>
     ),
   },
@@ -70,7 +70,7 @@ const THERAPY_COLS = [
     key: 'protocols',
     label: 'Clinical Instructions',
     render: (r) => (
-      <div className="text-[11px] text-stone-600 max-w-xs space-y-1">
+      <div className="text-[10.5px] text-stone-600 max-w-xs space-y-1">
         {r.preparationRequirements && (
           <p><strong className="text-stone-700">Prep:</strong> {r.preparationRequirements}</p>
         )}
@@ -196,9 +196,9 @@ export default function MastersPage() {
                       {specs.map((s) => (
                         <span
                           key={s}
-                          className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900"
+                          className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900"
                         >
-                          ✓ {s}
+                           {s}
                         </span>
                       ))}
                     </div>
@@ -210,7 +210,7 @@ export default function MastersPage() {
 
                 <div className="grid sm:grid-cols-2 gap-4 text-xs pt-2 border-t border-stone-200/60">
                   <div>
-                    <p className="text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
+                    <p className="text-[10.5px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
                       Weekly Schedule
                     </p>
                     {details.avail.length === 0 ? (
@@ -231,7 +231,7 @@ export default function MastersPage() {
                   </div>
 
                   <div>
-                    <p className="text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
+                    <p className="text-[10.5px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
                       Leave Records &amp; Off-Duty Status
                     </p>
                     {details.leaves.length === 0 ? (

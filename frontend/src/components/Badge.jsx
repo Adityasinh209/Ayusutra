@@ -1,20 +1,32 @@
 const COLORS = {
-  Scheduled: 'bg-blue-50 text-blue-700 ring-blue-600/20',
-  Confirmed: 'bg-green-50 text-green-700 ring-green-600/20',
-  Completed: 'bg-gray-100 text-gray-600 ring-gray-500/20',
-  Cancelled: 'bg-red-50 text-red-600 ring-red-600/20',
-  active: 'bg-green-50 text-green-700 ring-green-600/20',
-  inactive: 'bg-gray-100 text-gray-500 ring-gray-500/20',
-  admin: 'bg-purple-50 text-purple-700 ring-purple-600/20',
-  doctor: 'bg-blue-50 text-blue-700 ring-blue-600/20',
-  receptionist: 'bg-teal-50 text-teal-700 ring-teal-600/20',
-  patient: 'bg-amber-50 text-amber-700 ring-amber-600/20',
+  // Appointment statuses
+  Scheduled: 'bg-amber-100 text-amber-800 ring-amber-200',
+  Confirmed: 'bg-green-100 text-green-800 ring-green-200',
+  Completed: 'bg-emerald-100 text-emerald-800 ring-emerald-200',
+  Cancelled: 'bg-red-100 text-red-800 ring-red-200',
+
+  // Generic statuses
+  active: 'bg-green-100 text-green-800 ring-green-200',
+  inactive: 'bg-warm-100 text-warm-600 ring-warm-200',
+
+  // Roles
+  admin: 'bg-green-100 text-green-800 ring-green-200',
+  doctor: 'bg-sage-100 text-sage-800 ring-sage-200',
+  receptionist: 'bg-amber-100 text-amber-800 ring-amber-200',
+  therapist: 'bg-emerald-100 text-emerald-800 ring-emerald-200',
+  patient: 'bg-green-100 text-green-800 ring-green-200',
+
+  // Treatment stages
+  'Purva Karma': 'bg-blue-100 text-blue-800 ring-blue-200',
+  'Pradhana Karma': 'bg-amber-100 text-amber-800 ring-amber-200',
+  'Paschat Karma': 'bg-purple-100 text-purple-800 ring-purple-200',
+  'Follow-up': 'bg-indigo-100 text-indigo-800 ring-indigo-200',
 }
 
-export default function Badge({ label, color }) {
-  const cls = COLORS[color ?? label] ?? 'bg-gray-100 text-gray-600 ring-gray-500/20'
+export default function Badge({ label, color, className = '' }) {
+  const cls = COLORS[color ?? label] ?? 'bg-warm-100 text-warm-700 ring-warm-200'
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${cls}`}>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10.5px] font-medium ring-1 ring-inset ${cls} ${className}`}>
       {label}
     </span>
   )

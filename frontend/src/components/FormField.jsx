@@ -1,26 +1,26 @@
-export default function FormField({ label, error, required: req, children, hint }) {
+export default function FormField({ label, error, required: req, children, hint, className = '' }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className={`flex flex-col gap-1 ${className}`}>
       {label && (
-        <label className="text-sm font-medium text-gray-700">
+        <label className="text-sm font-semibold text-warm-700">
           {label}
           {req && <span className="text-red-500 ml-0.5">*</span>}
         </label>
       )}
       {children}
-      {hint && !error && <p className="text-xs text-gray-400">{hint}</p>}
+      {hint && !error && <p className="text-xs text-warm-400">{hint}</p>}
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   )
 }
 
 const inputBase =
-  'w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500 disabled:bg-gray-50 disabled:text-gray-500'
+  'w-full rounded-xl border border-warm-300 bg-white px-4 py-3 text-sm text-warm-900 placeholder-warm-400 shadow-sm transition-all duration-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 focus:outline-none disabled:bg-warm-100 disabled:text-warm-500 hover:border-green-300'
 
 export function Input({ error, className = '', ...props }) {
   return (
     <input
-      className={`${inputBase} ${error ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : ''} ${className}`}
+      className={`${inputBase} ${error ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : ''} ${className}`}
       {...props}
     />
   )
@@ -30,7 +30,7 @@ export function Textarea({ error, className = '', rows = 3, ...props }) {
   return (
     <textarea
       rows={rows}
-      className={`${inputBase} resize-none ${error ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : ''} ${className}`}
+      className={`${inputBase} resize-none ${error ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : ''} ${className}`}
       {...props}
     />
   )
@@ -39,7 +39,7 @@ export function Textarea({ error, className = '', rows = 3, ...props }) {
 export function Select({ error, className = '', children, ...props }) {
   return (
     <select
-      className={`${inputBase} ${error ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : ''} ${className}`}
+      className={`${inputBase} ${error ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : ''} ${className}`}
       {...props}
     >
       {children}

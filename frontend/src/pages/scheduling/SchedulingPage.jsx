@@ -155,7 +155,7 @@ export default function SchedulingPage() {
 
       {/* Safety & Clinical Governance Banner */}
       <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-start gap-3">
-        <span className="text-base">🛡️</span>
+        <span className="text-base"></span>
         <div>
           <span className="font-bold block">Panchakarma Scheduling Governance:</span>
           <p className="text-emerald-800 mt-0.5 leading-relaxed">
@@ -249,7 +249,7 @@ export default function SchedulingPage() {
               </span>
             )}
             <Button type="submit" loading={searching}>
-              ✨ Compute Constraint-Checked Slots
+               Compute Constraint-Checked Slots
             </Button>
           </div>
         </form>
@@ -270,7 +270,7 @@ export default function SchedulingPage() {
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wide bg-emerald-100 px-2 py-0.5 rounded-full">
+                        <span className="text-[10.5px] font-bold text-emerald-800 uppercase tracking-wide bg-emerald-100 px-2 py-0.5 rounded-full">
                           AI Top-Scored Clinical Slot
                         </span>
                         <span className="text-xs font-semibold text-stone-600">
@@ -291,22 +291,22 @@ export default function SchedulingPage() {
                     <div>
                       <span className="text-stone-400 block">Certified Therapist</span>
                       <span className="font-bold text-stone-800">{recommended.therapist?.name}</span>
-                      <span className="text-[10px] text-stone-500 block">Spec: {recommended.therapist?.specialization}</span>
+                      <span className="text-[9.5px] text-stone-500 block">Spec: {recommended.therapist?.specialization}</span>
                     </div>
                     <div>
                       <span className="text-stone-400 block">Assigned Chamber</span>
                       <span className="font-bold text-stone-800">{recommended.room?.name}</span>
-                      <span className="text-[10px] text-emerald-700 block font-medium">{recommended.room?.roomType}</span>
+                      <span className="text-[9.5px] text-emerald-700 block font-medium">{recommended.room?.roomType}</span>
                     </div>
                     <div>
                       <span className="text-stone-400 block">Procedure</span>
                       <span className="font-bold text-stone-800">{recommended.therapy?.name}</span>
-                      <span className="text-[10px] text-stone-500 block">{recommended.therapy?.defaultDurationMins} minutes</span>
+                      <span className="text-[9.5px] text-stone-500 block">{recommended.therapy?.defaultDurationMins} minutes</span>
                     </div>
                     <div>
                       <span className="text-stone-400 block">Therapist Load Today</span>
                       <span className="font-bold text-stone-800">{recommended.therapistWorkload} prior sessions</span>
-                      <span className="text-[10px] text-emerald-600 block">✓ Buffer time verified</span>
+                      <span className="text-[9.5px] text-emerald-600 block"> Buffer time verified</span>
                     </div>
                   </div>
 
@@ -356,7 +356,7 @@ export default function SchedulingPage() {
                               {formatDate(slot.date)} · {formatTime(slot.startTime)}–{formatTime(slot.endTime)}
                             </p>
                             <p className="text-xs text-stone-500 mt-0.5">
-                              ✋ {slot.therapist?.name} · 🏛️ {slot.room?.name}
+                               {slot.therapist?.name} ·  {slot.room?.name}
                             </p>
                           </div>
                           <Button
@@ -371,7 +371,7 @@ export default function SchedulingPage() {
                             Select Slot
                           </Button>
                         </div>
-                        <p className="text-[11px] text-stone-500 line-clamp-2">{slot.reason}</p>
+                        <p className="text-[10.5px] text-stone-500 line-clamp-2">{slot.reason}</p>
                       </div>
                     ))}
                   </div>

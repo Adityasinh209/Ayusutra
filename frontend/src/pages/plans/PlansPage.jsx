@@ -268,7 +268,7 @@ export default function PlansPage() {
                               : 'bg-stone-100 text-stone-400'
                           }`}
                         >
-                          <span className="text-[10px] block opacity-75">Stage {i + 1}</span>
+                          <span className="text-[9.5px] block opacity-75">Stage {i + 1}</span>
                           <span className="text-xs truncate block">{st}</span>
                         </div>
                       )
@@ -286,7 +286,7 @@ export default function PlansPage() {
                       <span className="font-bold text-stone-800 block mb-1">Vaidya Instructions &amp; Diet</span>
                       <p className="line-clamp-2">{plan.doctorInstructions || 'Standard clinical continuum.'}</p>
                       {plan.dietPlan && (
-                        <p className="mt-1 text-[11px] text-emerald-800 font-medium">Pathya: {plan.dietPlan}</p>
+                        <p className="mt-1 text-[10.5px] text-emerald-800 font-medium">Pathya: {plan.dietPlan}</p>
                       )}
                     </div>
                   </div>

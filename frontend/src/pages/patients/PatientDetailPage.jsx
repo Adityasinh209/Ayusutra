@@ -130,7 +130,7 @@ export default function PatientDetailPage() {
             )}
             {(user.role === 'receptionist' || user.role === 'admin') && (
               <Button variant="secondary" onClick={() => navigate('/scheduling', { state: { patientId: id } })}>
-                ✨ Schedule Session
+                 Schedule Session
               </Button>
             )}
           </div>
@@ -250,7 +250,7 @@ export default function PatientDetailPage() {
 
             {/* Visual stage progress pipeline */}
             <div className="py-2">
-              <p className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider mb-2">
+              <p className="text-[10.5px] font-semibold text-stone-500 uppercase tracking-wider mb-2">
                 Clinical Stage Pipeline
               </p>
               <div className="grid grid-cols-5 gap-1.5 text-center text-xs">
@@ -271,7 +271,7 @@ export default function PatientDetailPage() {
                           : 'bg-stone-100 text-stone-400'
                       }`}
                     >
-                      <span className="block text-[10px] opacity-75">Step {i + 1}</span>
+                      <span className="block text-[9.5px] opacity-75">Step {i + 1}</span>
                       <span className="text-xs truncate block">{stage}</span>
                     </div>
                   )
@@ -282,13 +282,13 @@ export default function PatientDetailPage() {
             {/* Instructions & Pathya-Apathya */}
             <div className="grid sm:grid-cols-2 gap-4 text-xs pt-2 border-t border-stone-100">
               <div>
-                <p className="font-bold text-stone-800 mb-1">🌿 Doctor Instructions</p>
+                <p className="font-bold text-stone-800 mb-1"> Doctor Instructions</p>
                 <p className="text-stone-600 bg-stone-50 p-2.5 rounded-lg border border-stone-100 leading-relaxed">
                   {activePlan.doctorInstructions || 'Administer prescribed therapies per classical protocols.'}
                 </p>
               </div>
               <div>
-                <p className="font-bold text-stone-800 mb-1">🥣 Pathya-Apathya (Diet &amp; Lifestyle)</p>
+                <p className="font-bold text-stone-800 mb-1"> Pathya-Apathya (Diet &amp; Lifestyle)</p>
                 <p className="text-stone-600 bg-stone-50 p-2.5 rounded-lg border border-stone-100 leading-relaxed">
                   {activePlan.dietPlan || 'Light, warm freshly cooked meals (Peya/Yusha). Avoid cold water & day sleep.'}
                 </p>
@@ -353,10 +353,10 @@ export default function PatientDetailPage() {
                       </span>
                     </div>
                     <p className="text-xs text-stone-500">
-                      📅 {formatDate(a.date)} · 🕒 {formatTime(a.startTime)} – {formatTime(a.endTime)}
+                       {formatDate(a.date)} ·  {formatTime(a.startTime)} – {formatTime(a.endTime)}
                     </p>
                     <p className="text-xs text-stone-400">
-                      🏛️ {e.room?.name ?? 'Room'} · ✋ {e.therapist?.name ?? 'Therapist'}
+                       {e.room?.name ?? 'Room'} ·  {e.therapist?.name ?? 'Therapist'}
                     </p>
                     {a.sessionNotes && (
                       <p className="text-xs text-stone-600 bg-white p-2 rounded border border-stone-100 mt-1.5">

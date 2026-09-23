@@ -117,7 +117,7 @@ export default function TherapistSessionsPage() {
               <span className="text-xs font-bold text-stone-800 uppercase tracking-wider">
                 Assigned Sessions ({sessions.length})
               </span>
-              <span className="text-[11px] text-stone-400">Click to log details</span>
+              <span className="text-[10.5px] text-stone-400">Click to log details</span>
             </div>
             {sessions.length === 0 ? (
               <EmptyState
@@ -158,7 +158,7 @@ export default function TherapistSessionsPage() {
                     {detail.patient.fullName} — {detail.therapy.name}
                   </h3>
                   <p className="text-xs text-stone-500 mt-0.5">
-                    📅 {formatDate(selected.date)} · 🕒 {formatTime(selected.startTime)} – {formatTime(selected.endTime)} · 🏛️ {detail.room.name}
+                     {formatDate(selected.date)} ·  {formatTime(selected.startTime)} – {formatTime(selected.endTime)} ·  {detail.room.name}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -190,7 +190,7 @@ export default function TherapistSessionsPage() {
               {/* Vaidya Clinical Instructions */}
               <div className="space-y-2">
                 <p className="text-xs font-bold text-stone-700 uppercase tracking-wide">
-                  🌿 Vaidya Clinical Instructions
+                   Vaidya Clinical Instructions
                 </p>
                 <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 text-xs text-stone-700 leading-relaxed">
                   {detail.doctorInstructions}
@@ -243,7 +243,7 @@ export default function TherapistSessionsPage() {
                       Completing updates patient Panchakarma session count and timeline
                     </span>
                     <Button onClick={() => setConfirmOpen(true)}>
-                      ✓ Complete &amp; Log Session
+                       Complete &amp; Log Session
                     </Button>
                   </div>
                 </div>
@@ -294,8 +294,8 @@ function SessionRow({ session, active, onClick }) {
         </div>
         <Badge label={session.status} />
       </div>
-      <div className="flex items-center justify-between text-[11px] text-stone-400 mt-1">
-        <span>📅 {formatDate(session.date)} · 🕒 {formatTime(session.startTime)}</span>
+      <div className="flex items-center justify-between text-[10.5px] text-stone-400 mt-1">
+        <span> {formatDate(session.date)} ·  {formatTime(session.startTime)}</span>
         <span className="font-semibold text-stone-600">{session.treatmentStage || 'Purva Karma'}</span>
       </div>
     </button>

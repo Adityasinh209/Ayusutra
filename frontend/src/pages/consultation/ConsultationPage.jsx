@@ -198,7 +198,7 @@ export default function ConsultationPage() {
                 <div><span className="text-stone-400">Koshta: </span>{patient.koshtaType || 'Madhyama'}</div>
                 {patient.allergies && (
                   <div className="col-span-2 text-amber-800 font-medium">
-                    ⚠️ Allergies: {patient.allergies}
+                     Allergies: {patient.allergies}
                   </div>
                 )}
               </div>

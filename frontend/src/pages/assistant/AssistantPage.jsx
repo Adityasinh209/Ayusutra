@@ -63,7 +63,7 @@ export default function AssistantPage() {
 
       {/* Governance & Disclaimer */}
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2.5">
-        <span>⚖️</span>
+        <span></span>
         <div>
           <span className="font-bold">Clinical &amp; RBAC Safety Notice:</span>
           <p className="text-amber-800 mt-0.5">
@@ -90,7 +90,7 @@ export default function AssistantPage() {
                 >
                   <p className="whitespace-pre-line">{m.text}</p>
                   <span
-                    className={`block text-[10px] mt-1 text-right ${
+                    className={`block text-[9.5px] mt-1 text-right ${
                       m.sender === 'user' ? 'text-emerald-200' : 'text-stone-400'
                     }`}
                   >
@@ -141,7 +141,7 @@ export default function AssistantPage() {
                   onClick={() => handleSend(prompt)}
                   className="w-full text-left p-2.5 rounded-lg border border-stone-200 hover:border-emerald-500 hover:bg-emerald-50/40 text-xs text-stone-700 transition-all cursor-pointer block"
                 >
-                  💬 {prompt}
+                   {prompt}
                 </button>
               ))}
             </div>
@@ -152,7 +152,7 @@ export default function AssistantPage() {
             <p className="text-stone-600">
               Logged in as: <strong className="text-stone-900">{user?.name}</strong> ({user?.roleLabel || user?.role})
             </p>
-            <p className="text-stone-500 text-[11px] leading-relaxed">
+            <p className="text-stone-500 text-[10.5px] leading-relaxed">
               Role permissions strictly enforced. Access to clinical EMR records and treatment adjustments restricted to authorized Vaidya accounts.
             </p>
           </Card>

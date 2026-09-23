@@ -1,12 +1,690 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-50: #f0fdf4;
-  --color-brand-100: #dcfce7;
-  --color-brand-200: #bbf7d0;
-  --color-brand-500: #22c55e;
-  --color-brand-600: #16a34a;
-  --color-brand-700: #15803d;
+  /* --- AyurSutra Green Theme: 80% White / 20% Green --- */
+  /* Primary Green Palette */
+  --color-green-50: #f0fdf4;
+  --color-green-100: #dcfce7;
+  --color-green-200: #bbf7d0;
+  --color-green-300: #86efac;
+  --color-green-400: #4ade80;
+  --color-green-500: #22c55e;
+  --color-green-600: #16a34a;
+  --color-green-700: #15803d;
+  --color-green-800: #166534;
+  --color-green-900: #14532d;
+  --color-green-950: #052e16;
 
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  /* Sage / Herbal accents */
+  --color-sage-50: #f6fef9;
+  --color-sage-100: #e8fcec;
+  --color-sage-200: #d1f8d7;
+  --color-sage-300: #a3efb3;
+  --color-sage-400: #6ce385;
+  --color-sage-500: #40c95f;
+  --color-sage-600: #2d9e46;
+  --color-sage-700: #257a38;
+  --color-sage-800: #216230;
+  --color-sage-900: #1e512a;
+
+  /* Warm neutrals (80% white space) */
+  --color-warm-50: #fafafa;
+  --color-warm-100: #f5f5f4;
+  --color-warm-200: #e7e5e4;
+  --color-warm-300: #d6d3d1;
+  --color-warm-400: #a8a29e;
+  --color-warm-500: #78716c;
+  --color-warm-600: #57534e;
+  --color-warm-700: #44403c;
+  --color-warm-800: #292524;
+  --color-warm-900: #1c1917;
+
+  /* Brand aliases using the new palette */
+  --color-brand-50: var(--color-green-50);
+  --color-brand-100: var(--color-green-100);
+  --color-brand-200: var(--color-green-200);
+  --color-brand-300: var(--color-green-300);
+  --color-brand-400: var(--color-green-400);
+  --color-brand-500: var(--color-green-500);
+  --color-brand-600: var(--color-green-600);
+  --color-brand-700: var(--color-green-700);
+  --color-brand-800: var(--color-green-800);
+  --color-brand-900: var(--color-green-900);
+
+  /* Accent gold (sparingly, for highlights) */
+  --color-accent-50: #fefce8;
+  --color-accent-100: #fef9c3;
+  --color-accent-200: #fef08a;
+  --color-accent-300: #fde047;
+  --color-accent-400: #facc15;
+  --color-accent-500: #eab308;
+  --color-accent-600: #ca8a04;
+
+  /* Typography */
+  --font-sans: 'Work Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'EB Garamond', Georgia, serif;
+
+  /* Spacing scale for consistent rhythm */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+
+  /* Border radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* Shadows with green tint */
+  --shadow-sm: 0 1px 2px 0 rgb(20 83 45 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(20 83 45 / 0.1), 0 2px 4px -2px rgb(20 83 45 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(20 83 45 / 0.1), 0 4px 6px -4px rgb(20 83 45 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(20 83 45 / 0.1), 0 8px 10px -6px rgb(20 83 45 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(20 83 45 / 0.15);
+}
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 15.5px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-warm-50);
+  color: var(--color-warm-800);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Selection color */
+::selection {
+  background-color: var(--color-green-200);
+  color: var(--color-green-900);
+}
+
+/* Focus visible for accessibility */
+:focus-visible {
+  outline: 2px solid var(--color-green-500);
+  outline-offset: 2px;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-warm-100);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-green-300);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-green-400);
+}
+
+/* Utility classes for ayurvedic design elements */
+
+/* Leaf decorative background */
+.bg-leaf-pattern {
+  background-image: url('/ornament-leaf.svg');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.bg-flower-pattern {
+  background-image: url('/ornament-flower.svg');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+/* Divider ornament */
+.divider-ornament {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.divider-ornament::before,
+.divider-ornament::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-green-300), transparent);
+}
+
+.divider-ornament svg {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+/* Glass card effect */
+.glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-green-100);
+  box-shadow: var(--shadow-md);
+}
+
+/* Gradient text */
+.gradient-text-green {
+  background: linear-gradient(135deg, var(--color-green-700), var(--color-green-500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-gold {
+  background: linear-gradient(135deg, var(--color-accent-600), var(--color-accent-400));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animated entrance */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.8s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.8s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.8s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.6s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 3s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Stagger delays */
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+.delay-5 { animation-delay: 0.5s; }
+.delay-6 { animation-delay: 0.6s; }
+
+/* Intersection observer scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s cubic-bezier(0.215, 0.61, 0.355, 1),
+              transform 0.8s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.reveal.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-40px);
+  transition: opacity 0.8s cubic-bezier(0.215, 0.61, 0.355, 1),
+              transform 0.8s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.reveal-left.active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.reveal-right {
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity 0.8s cubic-bezier(0.215, 0.61, 0.355, 1),
+              transform 0.8s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.reveal-right.active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.reveal-scale {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.6s cubic-bezier(0.215, 0.61, 0.355, 1),
+              transform 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.reveal-scale.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Card hover lift */
+.card-hover-lift {
+  transition: transform 0.3s cubic-bezier(0.215, 0.61, 0.355, 1),
+              box-shadow 0.3s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.card-hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+}
+
+/* Image zoom on hover */
+.img-zoom-hover img {
+  transition: transform 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.img-zoom-hover:hover img {
+  transform: scale(1.05);
+}
+
+/* Button styles */
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm
+         bg-green-700 text-white shadow-sm
+         hover:bg-green-800 hover:shadow-lg
+         active:scale-[0.98]
+         transition-all duration-300 ease-out
+         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm
+         bg-white text-green-700 border-2 border-green-200
+         hover:bg-green-50 hover:border-green-300
+         active:scale-[0.98]
+         transition-all duration-300 ease-out
+         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2;
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm
+         text-green-700 hover:bg-green-50
+         active:scale-[0.98]
+         transition-all duration-200 ease-out;
+}
+
+.btn-accent {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm
+         bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-sm
+         hover:from-amber-600 hover:to-amber-700 hover:shadow-lg
+         active:scale-[0.98]
+         transition-all duration-300 ease-out
+         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2;
+}
+
+/* Form inputs */
+.input-field {
+  @apply w-full px-4 py-3 rounded-xl border border-warm-300 bg-white text-warm-900 placeholder-warm-400
+         transition-all duration-200
+         focus:border-green-500 focus:ring-2 focus:ring-green-100 focus:outline-none
+         hover:border-green-300;
+}
+
+.input-field-error {
+  @apply border-red-400 focus:border-red-500 focus:ring-red-100;
+}
+
+.label-text {
+  @apply block text-sm font-semibold text-warm-700 mb-2;
+}
+
+/* Badge variants */
+.badge-green {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+         bg-green-100 text-green-800;
+}
+
+.badge-sage {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+         bg-sage-100 text-sage-800;
+}
+
+.badge-amber {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+         bg-amber-100 text-amber-800;
+}
+
+.badge-emerald {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+         bg-emerald-100 text-emerald-800;
+}
+
+/* Page container */
+.page-container {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12;
+}
+
+.section-container {
+  @apply py-12 sm:py-16 lg:py-20;
+}
+
+/* Hero section */
+.hero-section {
+  @apply relative min-h-[80vh] flex items-center justify-center overflow-hidden;
+}
+
+/* Leaf floating animation for hero */
+.leaf-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.leaf-float:nth-child(2) {
+  animation-delay: -2s;
+  animation-duration: 7s;
+}
+
+.leaf-float:nth-child(3) {
+  animation-delay: -4s;
+  animation-duration: 5s;
+}
+
+/* Image grid */
+.image-grid {
+  @apply grid gap-4 sm:gap-6;
+}
+
+.image-grid-2 {
+  @apply grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2;
+}
+
+.image-grid-3 {
+  @apply grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+}
+
+.image-grid-4 {
+  @apply grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4;
+}
+
+/* Card base */
+.card-base {
+  @apply bg-white rounded-2xl border border-warm-200 overflow-hidden
+         transition-all duration-300
+         hover:border-green-200 hover:shadow-lg;
+}
+
+/* Stat card */
+.stat-card {
+  @apply bg-white rounded-2xl border border-warm-200 overflow-hidden transition-all duration-300 hover:border-green-200 hover:shadow-lg p-6;
+}
+
+.stat-value {
+  @apply text-3xl sm:text-4xl font-bold text-green-800 font-serif;
+}
+
+.stat-label {
+  @apply text-sm font-medium text-warm-600 mt-1;
+}
+
+.stat-sublabel {
+  @apply text-xs text-warm-400 mt-0.5;
+}
+
+/* Table styles */
+.table-container {
+  @apply overflow-x-auto rounded-xl border border-warm-200;
+}
+
+.table-base {
+  @apply min-w-full divide-y divide-warm-200 text-sm;
+}
+
+.table-header {
+  @apply bg-warm-50;
+}
+
+.table-header th {
+  @apply px-4 py-3 text-left text-xs font-semibold text-warm-500 uppercase tracking-wider;
+}
+
+.table-body {
+  @apply bg-white divide-y divide-warm-100;
+}
+
+.table-body td {
+  @apply px-4 py-3 text-warm-700;
+}
+
+.table-row-hover:hover {
+  @apply bg-green-50/50;
+}
+
+/* Modal */
+.modal-overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40;
+  animation: fade-in 0.6s ease-out forwards;
+}
+
+.modal-content {
+  @apply relative z-10 w-full max-w-lg rounded-2xl bg-white shadow-2xl;
+  animation: scale-in 0.6s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+}
+
+.modal-header {
+  @apply flex items-center justify-between px-6 py-4 border-b border-warm-200;
+}
+
+.modal-title {
+  @apply text-lg font-semibold text-warm-900;
+}
+
+.modal-close {
+  @apply text-warm-400 hover:text-warm-600 text-2xl leading-none transition-colors;
+}
+
+.modal-body {
+  @apply px-6 py-5;
+}
+
+.modal-footer {
+  @apply flex justify-end gap-3 px-6 py-4 border-t border-warm-200;
+}
+
+/* Alert */
+.alert {
+  @apply flex items-start gap-3 rounded-xl p-4 text-sm border;
+}
+
+.alert-error {
+  @apply bg-red-50 border-red-200 text-red-800;
+}
+
+.alert-success {
+  @apply bg-green-50 border-green-200 text-green-800;
+}
+
+.alert-info {
+  @apply bg-blue-50 border-blue-200 text-blue-800;
+}
+
+.alert-warning {
+  @apply bg-amber-50 border-amber-200 text-amber-800;
+}
+
+/* Empty state */
+.empty-state {
+  @apply flex flex-col items-center justify-center py-16 text-center;
+}
+
+.empty-state-icon {
+  @apply w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4;
+}
+
+.empty-state-title {
+  @apply text-sm font-medium text-warm-700;
+}
+
+.empty-state-desc {
+  @apply text-sm text-warm-400 mt-1 max-w-xs;
+}
+
+/* Spinner */
+.spinner {
+  @apply inline-block animate-spin rounded-full border-2 border-warm-200 border-t-green-600;
+}
+
+.spinner-sm { @apply h-4 w-4; }
+.spinner-md { @apply h-6 w-6; }
+.spinner-lg { @apply h-8 w-8; }
+
+/* Page spinner */
+.page-spinner {
+  @apply flex items-center justify-center py-20;
+}
+
+/* Toast notification */
+.toast {
+  @apply fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl;
+  animation: slide-in-right 0.8s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+}
+
+.toast-success {
+  @apply bg-green-700 text-white;
+}
+
+.toast-error {
+  @apply bg-red-600 text-white;
+}
+
+.toast-info {
+  @apply bg-blue-600 text-white;
+}
+
+/* Layout */
+.sidebar {
+  @apply hidden lg:flex flex-col w-64 bg-white border-r border-warm-200 shrink-0;
+}
+
+.sidebar-header {
+  @apply flex items-center gap-3 px-5 py-5 border-b border-warm-200;
+}
+
+.sidebar-nav {
+  @apply flex-1 py-4 px-3 space-y-1 overflow-y-auto;
+}
+
+.sidebar-footer {
+  @apply px-4 py-4 border-t border-warm-200 bg-warm-50;
+}
+
+.topbar {
+  @apply bg-white border-b border-warm-200 px-4 lg:px-8 py-3.5 flex items-center justify-between shadow-sm;
+}
+
+.main-content {
+  @apply flex-1 flex flex-col min-w-0;
+}
+
+.page-content {
+  @apply flex-1 px-4 lg:px-8 py-6 sm:py-8;
+}
+
+/* Mobile menu */
+.mobile-menu-btn {
+  @apply lg:hidden p-1.5 rounded-lg text-green-700 hover:bg-green-50 transition-colors;
+}
+
+.mobile-nav {
+  @apply lg:hidden bg-white border-b border-warm-200 px-4 py-3 space-y-1 shadow-lg;
+}
+
+/* Print styles */
+@media print {
+  .sidebar, .topbar, .mobile-menu-btn, .modal-overlay, .toast {
+    display: none !important;
+  }
+  .main-content {
+    @apply flex-1;
+  }
+  .page-content {
+    @apply px-0 py-0;
+  }
 }

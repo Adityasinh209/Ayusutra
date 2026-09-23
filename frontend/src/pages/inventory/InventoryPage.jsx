@@ -110,7 +110,7 @@ export default function InventoryPage() {
       render: (r) => (
         <div>
           <span className="font-bold text-stone-900 text-xs block">{r.name}</span>
-          <span className="text-[11px] text-stone-500 line-clamp-1">{r.indications}</span>
+          <span className="text-[10.5px] text-stone-500 line-clamp-1">{r.indications}</span>
         </div>
       ),
     },
@@ -134,7 +134,7 @@ export default function InventoryPage() {
               {r.currentStock} {r.unit}
             </span>
             {isLow && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-semibold">
+              <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-semibold">
                 Low Stock
               </span>
             )}
