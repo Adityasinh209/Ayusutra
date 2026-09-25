@@ -16,14 +16,6 @@ const NAV_BY_ROLE = {
     { to: '/followups', label: 'Follow-up Tracking' },
     { to: '/assistant', label: 'AyurSutra Assistant' },
   ],
-  doctor: [
-    { to: '/dashboard', label: 'Dashboard' },
-    { to: '/patients', label: 'Patients' },
-    { to: '/consultation', label: 'Ayurvedic Assessment' },
-    { to: '/plans', label: 'Panchakarma Plans' },
-    { to: '/appointments', label: 'Therapy Sessions' },
-    { to: '/followups', label: 'Follow-up Tracking' },
-  ],
   receptionist: [
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/patients', label: 'Patients' },
@@ -33,8 +25,11 @@ const NAV_BY_ROLE = {
   ],
   therapist: [
     { to: '/dashboard', label: 'Dashboard' },
-    { to: '/therapist/sessions', label: 'Assigned Sessions' },
-    // { to: '/inventory', label: 'Therapy Consumables' },
+    { to: '/patients', label: 'Patients' },
+    { to: '/consultation', label: 'Ayurvedic Assessment' },
+    { to: '/plans', label: 'Panchakarma Plans' },
+    { to: '/therapist/sessions', label: 'Therapy Sessions' },
+    { to: '/followups', label: 'Follow-up Tracking' },
   ],
   patient: [
     { to: '/dashboard', label: 'Dashboard' },
@@ -55,7 +50,7 @@ export default function AppLayout({ children }) {
         { to: '/appointments', label: 'My Therapy Sessions' },
         { to: '/assistant', label: 'AyurSutra Assistant' },
       ]
-    : NAV_BY_ROLE[user?.role] ?? []
+    : NAV_BY_ROLE[user?.role] ?? NAV_BY_ROLE['therapist']
   const canUseAssistant = user?.role === 'patient' || user?.role === 'admin'
 
   function handleLogout() {

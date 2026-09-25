@@ -26,6 +26,9 @@ import {
 } from './seed.js'
 
 const NS = 'ayursutra'
+const STORE_VERSION = 'v2'
+const VERSION_KEY = `${NS}:storeVersion`
+
 const key = (entity) => `${NS}:${entity}`
 
 function load(entity) {
@@ -57,11 +60,21 @@ const SEEDS = {
 }
 
 function init() {
-  Object.entries(SEEDS).forEach(([entity, seed]) => {
-    if (load(entity) === null) {
+  const storedVersion = localStorage.getItem(VERSION_KEY)
+  if (storedVersion !== STORE_VERSION) {
+    // Seed data has changed — wipe and re-seed all entities
+    Object.entries(SEEDS).forEach(([entity, seed]) => {
       save(entity, seed)
-    }
-  })
+    })
+    localStorage.setItem(VERSION_KEY, STORE_VERSION)
+  } else {
+    // Only seed entities that are missing entirely
+    Object.entries(SEEDS).forEach(([entity, seed]) => {
+      if (load(entity) === null) {
+        save(entity, seed)
+      }
+    })
+  }
 }
 
 init()

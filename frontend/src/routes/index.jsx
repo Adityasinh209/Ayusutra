@@ -50,22 +50,22 @@ export default function AppRoutes() {
         <Route path="/dashboard" element={<AuthedRoute><DashboardPage /></AuthedRoute>} />
         <Route
           path="/patients"
-          element={<AuthedRoute roles={['doctor', 'receptionist', 'admin']}><PatientsPage /></AuthedRoute>}
+          element={<AuthedRoute roles={['doctor', 'therapist', 'receptionist', 'admin']}><PatientsPage /></AuthedRoute>}
         />
         <Route
           path="/patients/new"
-          element={<AuthedRoute roles={['doctor', 'receptionist', 'admin']}><NewPatientPage /></AuthedRoute>}
+          element={<AuthedRoute roles={['doctor', 'therapist', 'receptionist', 'admin']}><NewPatientPage /></AuthedRoute>}
         />
         <Route path="/patients/:id" element={<AuthedRoute><PatientDetailPage /></AuthedRoute>} />
 
         {/* Clinical Panchakarma Assessment & Planning */}
         <Route
           path="/consultation"
-          element={<AuthedRoute roles={['doctor', 'admin']}><ConsultationPage /></AuthedRoute>}
+          element={<AuthedRoute roles={['doctor', 'therapist', 'admin']}><ConsultationPage /></AuthedRoute>}
         />
         <Route
           path="/plans"
-          element={<AuthedRoute roles={['doctor', 'admin', 'receptionist']}><PlansPage /></AuthedRoute>}
+          element={<AuthedRoute roles={['doctor', 'therapist', 'admin', 'receptionist']}><PlansPage /></AuthedRoute>}
         />
 
         {/* Smart Scheduling */}
@@ -96,7 +96,7 @@ export default function AppRoutes() {
         />
         <Route
           path="/followups"
-          element={<AuthedRoute roles={['doctor', 'admin']}><FollowupsPage /></AuthedRoute>}
+          element={<AuthedRoute roles={['doctor', 'therapist', 'admin']}><FollowupsPage /></AuthedRoute>}
         />
         <Route
           path="/assistant"

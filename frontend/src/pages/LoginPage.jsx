@@ -3,11 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import TextReveal from '../components/TextReveal.jsx'
 
-// Predefined credentials for all 4 authorized roles
+// Predefined credentials for authorized roles
 const DEMO_CREDENTIALS = [
-  { role: 'Doctor (Vaidya)', email: 'doctor@ayursutra.dev', password: 'Doctor@123', icon: '' },
-  { role: 'Receptionist', email: 'receptionist@ayursutra.dev', password: 'Reception@123', icon: '' },
   { role: 'Panchakarma Therapist', email: 'therapist@ayursutra.dev', password: 'Therapist@123', icon: '' },
+  { role: 'Receptionist', email: 'receptionist@ayursutra.dev', password: 'Reception@123', icon: '' },
   { role: 'Patient', email: 'patient@ayursutra.dev', password: 'Patient@123', icon: '' },
 ]
 
@@ -185,7 +184,7 @@ export default function LoginPage() {
           style={{ borderTop: '1px solid #dcfce7' }}
         >
           <TextReveal as="p" delay={0.1} className="text-[13.5px] font-semibold uppercase tracking-wider pt-4 mb-3" style={{ color: '#16a34a' }}>
-            Authorized User Accounts (4 Roles)
+            Authorized User Accounts
           </TextReveal>
           <div className="space-y-2">
             {DEMO_CREDENTIALS.map((c, idx) => (

@@ -123,167 +123,21 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {role === 'doctor' && (
-        <DoctorDashboard user={user} data={data} meta={meta} navigate={navigate} />
+      {(role === 'doctor' || role === 'therapist' || role === 'admin') && (
+        <TherapistDashboard user={user} data={data} meta={meta} navigate={navigate} />
       )}
       {role === 'receptionist' && (
         <ReceptionistDashboard user={user} data={data} meta={meta} navigate={navigate} />
       )}
-      {role === 'therapist' && (
-        <TherapistDashboard user={user} data={data} meta={meta} navigate={navigate} />
-      )}
       {role === 'patient' && (
         <PatientDashboard user={user} data={data} meta={meta} navigate={navigate} />
       )}
-      {role === 'admin' && (
-        <DoctorDashboard user={user} data={data} meta={meta} navigate={navigate} />
-      )}
     </div>
   )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. DOCTOR DASHBOARD – 80% white / 20% green ayurvedic theme
-// ─────────────────────────────────────────────────────────────────────────────
-function DoctorDashboard({ user, data, meta, navigate }) {
-  const { activeTreatmentsCount, todaySessionsCount, pradhanaToday, upcomingFollowUps, todaySessions, activePlans } = data
-
-  return (
-    <div className="space-y-6">
-      <TextReveal delay={0.05}>
-        <DashboardBanner
-          tag="Vaidya Clinical Console — 80% White / 20% Green"
-          title={`Namaste, Dr. ${user.name}`}
-          description="Clinical overview in an ayurvedic calm — active Panchakarma courses, detox in Pradhana Karma, and upcoming reviews in white-green harmony."
-          primaryAction={{ label: '+ New Assessment', onClick: () => navigate('/consultation') }}
-        />
-      </TextReveal>
-
-      {/* KPIs with scroll stagger */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <TextReveal staggerIndex={0}><StatCard label="Active Patient Plans" value={activeTreatmentsCount} sub="Under clinical supervision" highlight /></TextReveal>
-        <TextReveal staggerIndex={1}><StatCard label="Today's Therapies" value={todaySessionsCount} sub="Scheduled across shalas" /></TextReveal>
-        <TextReveal staggerIndex={2}><StatCard label="In Pradhana Karma" value={pradhanaToday} sub="Active core elimination" /></TextReveal>
-        <TextReveal staggerIndex={3}><StatCard label="Upcoming Reviews" value={upcomingFollowUps} sub="Post-Karma consultations" /></TextReveal>
-      </div>
-
-      <OrnamentalDivider />
-
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <TextReveal delay={0.05}>
-            <Card>
-              <div className="flex items-center justify-between mb-4 pb-3 border-b border-green-100">
-                <div>
-                  <h3 className="text-[16.5px] font-bold text-green-900">Today's Treatment Queue</h3>
-                  <p className="text-[14.5px] text-green-700/70">Essential view of therapies being administered today</p>
-                </div>
-                <Button size="sm" variant="ghost" onClick={() => navigate('/appointments')}>
-                  View All Sessions
-                </Button>
-              </div>
-
-              {todaySessions.length === 0 ? (
-                <p className="text-[14.5px] py-6 text-center text-green-700/60">No therapy sessions scheduled today.</p>
-              ) : (
-                <div className="space-y-2.5">
-                  {todaySessions.map((a) => {
-                    const patient = meta.patients[a.patientId]
-                    const therapy = meta.therapies[a.therapyId]
-                    const therapist = meta.therapists[a.therapistId]
-                    const room = meta.rooms[a.roomId]
-                    return (
-                      <div
-                        key={a.id}
-                        className="p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors hover:shadow-sm"
-                        style={{ backgroundColor: '#ffffff', borderColor: '#dcfce7' }}
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-[16.5px] text-green-900">{patient?.fullName || 'Patient'}</span>
-                            <span className="text-[14.5px] font-semibold px-2 py-0.5 rounded-md bg-green-50 text-green-700 border border-green-200">
-                              {therapy?.name || 'Therapy'}
-                            </span>
-                            {a.sessionNumber && <span className="text-[12.5px] font-medium text-green-700/60">#{a.sessionNumber}</span>}
-                          </div>
-                          <p className="text-[14.5px] text-warm-600">
-                            {formatTime(a.startTime)}–{formatTime(a.endTime)} · {room?.name || 'Shala'} · {therapist?.name || 'Therapist'}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge label={a.treatmentStage || 'Purva Karma'} />
-                          <Badge label={a.status} />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </Card>
-          </TextReveal>
-
-          <TextReveal delay={0.1}>
-            <Card>
-              <div className="flex items-center justify-between mb-4 pb-3 border-b border-green-100">
-                <div>
-                  <h3 className="text-[16.5px] font-bold text-green-900">Active Treatment Plans</h3>
-                  <p className="text-[14.5px] text-green-700/70">Stage progress of patients undergoing Panchakarma</p>
-                </div>
-                <Button size="sm" variant="ghost" onClick={() => navigate('/plans')}>View All Plans</Button>
-              </div>
-              <div className="space-y-3">
-                {activePlans.map((plan) => {
-                  const patient = meta.patients[plan.patientId]
-                  const progress = Math.round(((plan.completedSessions || 0) / (plan.totalSessions || 1)) * 100)
-                  return (
-                    <div key={plan.id} className="p-3.5 rounded-xl border space-y-2 bg-white" style={{ borderColor: '#dcfce7' }}>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <span className="font-bold text-[16.5px] text-green-900">{patient?.fullName}</span>
-                          <span className="text-[14.5px] ml-2 text-green-600">({patient?.prakriti || 'Vata-Pitta'})</span>
-                          <p className="text-[14.5px] font-semibold mt-0.5 text-green-700">{plan.procedureName || plan.primaryPanchakarma}</p>
-                        </div>
-                        <Badge label={plan.treatmentStage} />
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-[13.5px] mb-1 text-green-700/70">
-                          <span>Progress: {plan.completedSessions} of {plan.totalSessions} Sessions</span>
-                          <span className="font-semibold text-green-700">{progress}%</span>
-                        </div>
-                        <div className="w-full rounded-full h-2 overflow-hidden bg-green-100">
-                          <div className="h-2 rounded-full transition-all bg-green-600" style={{ width: `${Math.min(progress, 100)}%` }} />
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </Card>
-          </TextReveal>
-        </div>
-
-        <div className="space-y-6">
-          <TextReveal delay={0.08}>
-            <Card>
-              <CardHeader title="Clinical Quick Actions" subtitle="Direct patient workflows" />
-              <div className="flex flex-col gap-2">
-                <QuickNavButton label="New Ayurvedic Assessment" to="/consultation" navigate={navigate} />
-                <QuickNavButton label="Panchakarma Plans" to="/plans" navigate={navigate} />
-                <QuickNavButton label="Patient EMR Directory" to="/patients" navigate={navigate} />
-                <QuickNavButton label="Follow-up Reviews" to="/followups" navigate={navigate} />
-              </div>
-            </Card>
-          </TextReveal>
-
-
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. RECEPTIONIST DASHBOARD
+// 1. RECEPTIONIST DASHBOARD
 // ─────────────────────────────────────────────────────────────────────────────
 function ReceptionistDashboard({ user, data, meta, navigate }) {
   const { todaySessionsCount, roomUtilization, totalPatientsCount, todaySessions, roomsList, bookedRoomIds } = data
@@ -381,69 +235,137 @@ function ReceptionistDashboard({ user, data, meta, navigate }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. THERAPIST DASHBOARD
+// 2. THERAPIST DASHBOARD (merged: therapist execution + clinical oversight)
 // ─────────────────────────────────────────────────────────────────────────────
 function TherapistDashboard({ user, data, meta, navigate }) {
-  const { therapistSessions, therapistCompletedCount } = data
-  const pendingCount = therapistSessions.filter((s) => s.status === 'Scheduled' || s.status === 'Confirmed').length
+  const {
+    therapistSessions, therapistCompletedCount,
+    activeTreatmentsCount, pradhanaToday, upcomingFollowUps,
+    activePlans, todaySessions,
+  } = data
+
+  // Therapists see their own assigned sessions; admin/doctor see today's full queue
+  const isTherapist = user?.role === 'therapist'
+  const sessionsList = isTherapist ? therapistSessions : (todaySessions || therapistSessions)
 
   return (
     <div className="space-y-6">
       <TextReveal delay={0.05}>
         <DashboardBanner
-          tag="Panchakarma Therapist Portal — Green Harmony"
+          tag="Therapist Clinical Console"
           title={`Namaste, ${user.name}`}
-          description="Your therapy roster, shala assignments and Swedana prep — ayurvedic leaf calm, clinical precision."
-          primaryAction={{ label: 'My Session Notes', onClick: () => navigate('/therapist/sessions') }}
+          description="Panchakarma therapy roster, active patient plans, and clinical tools — ayurvedic precision in every session."
+          primaryAction={{ label: 'Therapy Sessions', onClick: () => navigate('/therapist/sessions') }}
+          secondaryAction={{ label: '+ New Assessment', onClick: () => navigate('/consultation') }}
         />
       </TextReveal>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <TextReveal staggerIndex={0}><StatCard label="Assigned Sessions" value={therapistSessions.length} sub="On your schedule today" highlight /></TextReveal>
-        <TextReveal staggerIndex={1}><StatCard label="Pending Treatment" value={pendingCount} sub="Ready for administration" /></TextReveal>
-        <TextReveal staggerIndex={2}><StatCard label="Completed Today" value={therapistCompletedCount} sub="Successfully administered" /></TextReveal>
-        <TextReveal staggerIndex={3}><StatCard label="Assigned Shala" value="Room 1" sub="Main Snehana Suite" /></TextReveal>
+        <TextReveal staggerIndex={1}><StatCard label="Active Patient Plans" value={activeTreatmentsCount} sub="Under clinical supervision" /></TextReveal>
+        <TextReveal staggerIndex={2}><StatCard label="In Pradhana Karma" value={pradhanaToday} sub="Active core elimination" /></TextReveal>
+        <TextReveal staggerIndex={3}><StatCard label="Upcoming Reviews" value={upcomingFollowUps} sub="Post-Karma consultations" /></TextReveal>
       </div>
 
       <OrnamentalDivider />
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+
+          {/* Sessions panel — therapist sees own assignments; admin/doctor see clinic queue */}
           <TextReveal delay={0.05}>
             <Card>
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-green-100">
                 <div>
-                  <h3 className="text-[16.5px] font-bold text-green-900">My Assigned Sessions Today</h3>
-                  <p className="text-[14.5px] text-green-700/70">Patients and protocols assigned to your care</p>
+                  <h3 className="text-[16.5px] font-bold text-green-900">
+                    {isTherapist ? 'My Assigned Sessions Today' : "Today's Treatment Queue"}
+                  </h3>
+                  <p className="text-[14.5px] text-green-700/70">
+                    {isTherapist ? 'Patients and protocols assigned to your care' : 'Therapies being administered today'}
+                  </p>
                 </div>
                 <Button size="sm" variant="ghost" onClick={() => navigate('/therapist/sessions')}>Open Full Log</Button>
               </div>
               <div className="space-y-2.5">
-                {therapistSessions.map((a) => {
-                  const patient = meta.patients[a.patientId]
-                  const therapy = meta.therapies[a.therapyId]
-                  const room = meta.rooms[a.roomId]
-                  return (
-                    <div key={a.id} className="p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white" style={{ borderColor: '#dcfce7' }}>
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-[16.5px] text-green-900">{patient?.fullName || 'Patient'}</span>
-                          <span className="text-[14.5px] font-semibold text-green-700">{therapy?.name || 'Therapy'}</span>
+                {sessionsList.length === 0 ? (
+                  <p className="text-[14.5px] py-6 text-center text-green-700/60">No therapy sessions scheduled today.</p>
+                ) : (
+                  sessionsList.map((a) => {
+                    const patient = meta.patients[a.patientId]
+                    const therapy = meta.therapies[a.therapyId]
+                    const therapist = meta.therapists[a.therapistId]
+                    const room = meta.rooms[a.roomId]
+                    return (
+                      <div key={a.id} className="p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white" style={{ borderColor: '#dcfce7' }}>
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-[16.5px] text-green-900">{patient?.fullName || 'Patient'}</span>
+                            <span className="text-[14.5px] font-semibold text-green-700">{therapy?.name || 'Therapy'}</span>
+                            {a.sessionNumber && <span className="text-[12.5px] font-medium text-green-700/60">#{a.sessionNumber}</span>}
+                          </div>
+                          <p className="text-[14.5px] text-warm-600">
+                            {formatTime(a.startTime)}–{formatTime(a.endTime)} · {room?.name || 'Shala'}
+                            {!isTherapist && therapist ? ` · ${therapist.name}` : ''}
+                          </p>
                         </div>
-                        <p className="text-[14.5px] text-warm-600">{formatTime(a.startTime)}–{formatTime(a.endTime)} · {room?.name || 'Shala'}</p>
+                        <div className="flex items-center gap-2">
+                          <Badge label={a.treatmentStage || 'Purva Karma'} />
+                          <Badge label={a.status} />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge label={a.treatmentStage || 'Purva Karma'} />
-                        <Badge label={a.status} />
-                      </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })
+                )}
               </div>
             </Card>
           </TextReveal>
 
+          {/* Active Treatment Plans — clinical oversight from Doctor Dashboard */}
           <TextReveal delay={0.1}>
+            <Card>
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-green-100">
+                <div>
+                  <h3 className="text-[16.5px] font-bold text-green-900">Active Treatment Plans</h3>
+                  <p className="text-[14.5px] text-green-700/70">Stage progress of patients undergoing Panchakarma</p>
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => navigate('/plans')}>View All Plans</Button>
+              </div>
+              <div className="space-y-3">
+                {(activePlans || []).length === 0 ? (
+                  <p className="text-[14.5px] py-4 text-center text-green-700/60">No active treatment plans.</p>
+                ) : (
+                  (activePlans || []).map((plan) => {
+                    const patient = meta.patients[plan.patientId]
+                    const progress = Math.round(((plan.completedSessions || 0) / (plan.totalSessions || 1)) * 100)
+                    return (
+                      <div key={plan.id} className="p-3.5 rounded-xl border space-y-2 bg-white" style={{ borderColor: '#dcfce7' }}>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <span className="font-bold text-[16.5px] text-green-900">{patient?.fullName}</span>
+                            <span className="text-[14.5px] ml-2 text-green-600">({patient?.prakriti || 'Vata-Pitta'})</span>
+                            <p className="text-[14.5px] font-semibold mt-0.5 text-green-700">{plan.procedureName || plan.primaryPanchakarma}</p>
+                          </div>
+                          <Badge label={plan.treatmentStage} />
+                        </div>
+                        <div>
+                          <div className="flex justify-between text-[13.5px] mb-1 text-green-700/70">
+                            <span>Progress: {plan.completedSessions} of {plan.totalSessions} Sessions</span>
+                            <span className="font-semibold text-green-700">{progress}%</span>
+                          </div>
+                          <div className="w-full rounded-full h-2 overflow-hidden bg-green-100">
+                            <div className="h-2 rounded-full transition-all bg-green-600" style={{ width: `${Math.min(progress, 100)}%` }} />
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </Card>
+          </TextReveal>
+
+          {/* Pre-Therapy Checklist — existing therapist feature */}
+          <TextReveal delay={0.15}>
             <Card>
               <CardHeader title="Pre-Therapy Checklist" subtitle="Ayurvedic clinical standards" />
               <div className="space-y-2 text-[14.5px] text-green-900">
@@ -462,19 +384,22 @@ function TherapistDashboard({ user, data, meta, navigate }) {
               </div>
             </Card>
           </TextReveal>
+
         </div>
 
         <div className="space-y-6">
           <TextReveal delay={0.08}>
             <Card>
-              <CardHeader title="Therapist Actions" subtitle="Quick tasks" />
+              <CardHeader title="Clinical Quick Actions" subtitle="Therapy and patient workflows" />
               <div className="flex flex-col gap-2">
                 <QuickNavButton label="Log Session Details" to="/therapist/sessions" navigate={navigate} />
-                {/* <QuickNavButton label="Check Herbal Consumables" to="/inventory" navigate={navigate} /> */}
+                <QuickNavButton label="New Ayurvedic Assessment" to="/consultation" navigate={navigate} />
+                <QuickNavButton label="Patient EMR Directory" to="/patients" navigate={navigate} />
+                <QuickNavButton label="Panchakarma Plans" to="/plans" navigate={navigate} />
+                <QuickNavButton label="Follow-up Reviews" to="/followups" navigate={navigate} />
               </div>
             </Card>
           </TextReveal>
-
         </div>
       </div>
     </div>
@@ -482,7 +407,7 @@ function TherapistDashboard({ user, data, meta, navigate }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4. PATIENT DASHBOARD
+// 3. PATIENT DASHBOARD
 // ─────────────────────────────────────────────────────────────────────────────
 function PatientDashboard({ user, data, meta, navigate }) {
   const { profile, activePlan, nextAppt, completedCount, totalCount } = data
