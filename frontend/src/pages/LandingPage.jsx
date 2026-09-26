@@ -20,21 +20,21 @@ const SERVICES = [
 const ABOUT_FEATURES = [
   { title: 'Digital Health Records', desc: 'Maintain secure Electronic Medical Records (EMR) containing patient history, diagnoses, prescribed therapies, medications, and follow-up information in one centralized system.' },
   { title: 'AI-Assisted Scheduling', desc: 'Recommend suitable therapists and available appointment slots based on therapist availability, existing bookings, and the prescribed therapy, making appointment scheduling faster and more efficient.' },
-  { title: 'Multi-Role Dashboard', desc: 'Dedicated dashboards for Doctors, Receptionists, Therapists, Patients, and Administrators ensure smooth coordination across every stage of the treatment journey.' },
+  { title: 'Multi-Role Dashboard', desc: 'Dedicated dashboards for Receptionists, Therapists, Patients, and Administrators ensure smooth coordination across every stage of the treatment journey.' },
   { title: 'Billing & Patient Management', desc: 'Manage appointments, patient check-ins, billing, payments, and treatment progress through a unified digital platform designed specifically for Panchakarma centers.' },
 ]
 
 const WHY_US = [
   { icon: '', title: 'AI-Assisted Scheduling', desc: 'The platform recommends suitable therapists and available appointment slots based on therapist availability and existing bookings, helping reduce scheduling conflicts and save administrative time.' },
   { icon: '', title: 'Digital Patient Records', desc: 'Store patient consultations, diagnoses, therapy plans, prescriptions, and treatment history securely in Electronic Medical Records (EMR), making information easily accessible to authorized healthcare professionals.' },
-  { icon: '', title: 'Multi-Role Collaboration', desc: 'Doctors, receptionists, therapists, patients, and administrators work together through dedicated dashboards, ensuring better coordination throughout the treatment process.' },
+  { icon: '', title: 'Multi-Role Collaboration', desc: 'Therapists, receptionists, patients, and administrators work together through dedicated dashboards, ensuring better coordination throughout the treatment process.' },
   { icon: '', title: 'Complete Clinic Management', desc: 'Manage patient registration, appointments, therapy sessions, billing, inventory, follow-up care, and reporting through one integrated web platform designed specifically for Panchakarma centers.' },
 ]
 
 const TESTIMONIALS = [
   { name: 'Ram Nath Kovind', title: 'Former President of India', quote: 'My experience at this Panchakarma centre has been truly remarkable. The serene environment, skilled practitioners, and holistic approach have made a significant impact on my wellbeing.' },
-  { name: 'H. D. Deve Gowda', title: 'Former Prime Minister of India', quote: 'The dedication and hospitality of the doctors and staff, their sincere service, treatment with humanity and professional ethics — these qualities are very well seen and truly laudable.' },
-  { name: 'Gopinath Balakrishnan', title: 'Patient', quote: 'My 14-day treatment was an exceptional and truly memorable experience. From the compassionate guidance of the Vaidyas to the personalised care — every aspect reflected outstanding dedication.' },
+  { name: 'H. D. Deve Gowda', title: 'Former Prime Minister of India', quote: 'The dedication and hospitality of the therapists and staff, their sincere service, treatment with humanity and professional ethics — these qualities are very well seen and truly laudable.' },
+  { name: 'Gopinath Balakrishnan', title: 'Patient', quote: 'My 14-day treatment was an exceptional and truly memorable experience. From the compassionate guidance of the therapy team to the personalised care — every aspect reflected outstanding dedication.' },
 ]
 
 export default function LandingPage() {
@@ -122,7 +122,7 @@ export default function LandingPage() {
           <TextReveal as="p" delay={0.3} className="text-base md:text-lg max-w-3xl mb-10 leading-relaxed" style={{ color: 'rgba(240,253,244,0.88)' }}>
             AyurSutra is an AI-enabled web platform designed to simplify the daily operations of Panchakarma treatment centers.
             From patient registration and Electronic Medical Records (EMR) to therapy management, billing, and follow-up care,
-            the platform provides a centralized solution for doctors, therapists, receptionists, and patients. Its AI-assisted
+            the platform provides a centralized solution for therapists, receptionists, and patients. Its AI-assisted
             scheduling feature recommends suitable therapists and available appointment slots, reducing manual effort while
             improving operational efficiency.
           </TextReveal>
@@ -183,7 +183,7 @@ export default function LandingPage() {
             </TextReveal>
 
             <TextReveal as="p" delay={0.4} className="text-[16px] leading-relaxed mb-6" style={{ color: '#57534e' }}>
-              The system improves coordination between doctors, therapists, receptionists, and patients while reducing
+              The system improves coordination between therapists, receptionists, and patients while reducing
               paperwork and manual scheduling. With AI-assisted therapist recommendations and digital treatment records,
               AyurSutra helps treatment centers deliver organized, efficient, and patient-centric healthcare services.
             </TextReveal>
@@ -441,7 +441,7 @@ export default function LandingPage() {
         </div>
 
         <div className="text-center py-4 text-xs" style={{ borderTop: '1px solid rgba(240,253,244,0.12)', color: 'rgba(240,253,244,0.45)' }}>
-          © 2024 AyurSutra Panchakarma Centre. All rights reserved. · Inspired by Arya Vaidya Sala, Kottakkal.
+          © 2024 AyurSutra Panchakarma Centre. All rights reserved. · Inspired by classical Kerala Panchakarma traditions.
         </div>
       </footer>
     </div>
