@@ -51,11 +51,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full max-w-md" style={{ fontFamily: "'Work Sans', sans-serif" }}>
       {/* Card */}
       <div
         className="rounded-2xl shadow-lg overflow-hidden relative"
-        style={{ backgroundColor: '#ffffff', border: '1px solid #dcfce7' }}
+        style={{ backgroundColor: '#ffffff', border: '1px solid #dcfce7', fontFamily: "'Work Sans', sans-serif" }}
       >
         {/* Card header strip — 80% white / 20% green */}
         <div
@@ -75,7 +75,7 @@ export default function LoginPage() {
               </span>
             </div>
           </TextReveal>
-          <TextReveal as="h2" delay={0.2} className="text-[22.5px] font-normal text-white relative" style={{ fontFamily: "'EB Garamond', serif" }}>
+          <TextReveal as="h2" delay={0.2} className="text-2xl md:text-[26px] font-bold text-white relative">
             Welcome Back
           </TextReveal>
           <TextReveal as="p" delay={0.3} className="text-[14.5px] mt-1 relative" style={{ color: 'rgba(240,253,244,0.80)' }}>
@@ -208,7 +208,7 @@ export default function LoginPage() {
               </TextReveal>
             ))}
           </div>
-          <TextReveal as="p" delay={0.4} className="text-[12.5px] mt-2 text-center" style={{ color: '#86efac' }}>
+          <TextReveal as="p" delay={0.4} className="text-[13px] sm:text-sm mt-2 text-center font-medium" style={{ color: '#15803d' }}>
             Click an account above to auto-fill email &amp; password
           </TextReveal>
         </div>

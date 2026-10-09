@@ -1,4 +1,8 @@
 import '@testing-library/jest-dom'
+import { vi } from 'vitest'
+
+// Keep frontend unit tests hermetic: never hit live Groq.
+vi.stubEnv('VITE_GROQ_API_KEY', '')
 
 // Mock localStorage for tests
 class LocalStorageMock {

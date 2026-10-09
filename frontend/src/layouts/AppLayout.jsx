@@ -77,7 +77,7 @@ export default function AppLayout({ children }) {
         <div className="flex items-center gap-3 px-5 py-5 border-b border-warm-200">
           <img src="/vecteezy-ayurvedic-logo.jpg" alt="Ayurvedic logo - Modern Medical and health care center" className="h-9 w-auto object-contain rounded-md shadow-sm bg-white border border-green-100" width="64" height="44" />
           <div>
-            <span className="font-bold text-base tracking-tight block leading-tight text-warm-900 font-serif">
+            <span className="font-bold text-base tracking-tight block leading-tight text-warm-900">
               AyurSutra
             </span>
             <span className="text-[9.5px] font-semibold tracking-wider uppercase block text-green-600">
@@ -142,7 +142,7 @@ export default function AppLayout({ children }) {
             </div>
             <div className="flex lg:hidden items-center gap-2">
               <img src="/vecteezy-ayurvedic-logo.jpg" alt="Ayurvedic logo" className="h-7 w-auto object-contain rounded-md shadow-sm bg-white border border-green-100" width="48" height="33" />
-              <span className="text-base font-bold text-warm-900 font-serif">AyurSutra</span>
+              <span className="text-base font-bold text-warm-900">AyurSutra</span>
             </div>
           </div>
 

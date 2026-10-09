@@ -6,6 +6,8 @@ export default function AuthLayout({ children }) {
       className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden"
       style={{
         backgroundColor: '#ffffff',
+        fontFamily: "'Work Sans', sans-serif",
+        color: '#14532d',
         backgroundImage: `
           radial-gradient(ellipse at 20% 20%, rgba(21,128,61,0.07) 0%, transparent 60%),
           radial-gradient(ellipse at 80% 80%, rgba(134,239,172,0.12) 0%, transparent 60%)
@@ -24,7 +26,7 @@ export default function AuthLayout({ children }) {
       {children}
 
       {/* Bottom tagline */}
-      <TextReveal as="p" className="mt-8 text-[13.5px] text-center relative" style={{ color: '#86efac' }} delay={0.3}>
+      <TextReveal as="p" className="mt-8 text-sm md:text-[15px] text-center relative font-medium" style={{ color: '#15803d' }} delay={0.3}>
         AyurSutra Panchakarma Centre · Healing Body, Mind &amp; Spirit
       </TextReveal>
     </div>

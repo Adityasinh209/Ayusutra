@@ -10,7 +10,7 @@ export default function PageHeader({ title, subtitle, action, back }) {
             ← {back.label}
           </button>
         )}
-        <h1 className="text-2xl sm:text-3xl font-bold text-warm-900 font-serif tracking-tight">{title}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-warm-900 tracking-tight">{title}</h1>
         {subtitle && <p className="text-sm sm:text-base text-warm-500 mt-1.5">{subtitle}</p>}
       </div>
       {action && <div className="shrink-0 mt-1">{action}</div>}

@@ -3,20 +3,25 @@ import { useAuth } from '../../hooks/useAuth.jsx'
 import PageHeader from '../../components/PageHeader.jsx'
 import Card from '../../components/Card.jsx'
 import Button from '../../components/Button.jsx'
+import { answerQuestion } from '../../services/assistant.js'
 
 const INITIAL_MESSAGES = [
   {
     sender: 'assistant',
-    text: 'Namaste! I am the AyurSutra Panchakarma Assistant. I can assist you with Panchakarma educational principles, pre-therapy preparation guidelines, daily session schedules, and post-cleanse Samsarjana Krama diets. How may I assist your Panchakarma journey today?',
+    text: 'Namaste! I am the AyurSutra Panchakarma Assistant. You can ask me anything about your therapy, what to do before a session, what to eat, or after-care. I will explain in simple words, step by step. How may I help you today?',
     time: 'Just now',
+    source: 'local-no-key',
   },
 ]
 
 const QUICK_PROMPTS = [
   'What are the 5 classical Panchakarma procedures?',
-  'How should I prepare for my morning Abhyanga & Swedana?',
-  'What is Samsarjana Krama post-Basti diet?',
+  'What should I eat before my therapy session?',
+  'What to do before Basti?',
+  'How should I prepare for Abhyanga?',
   'What should I avoid after a Shirodhara session?',
+  'What is Samsarjana Krama diet after cleansing?',
+  'When is my next session?',
   'What specialized rooms are available in AyurSutra?',
 ]
 
@@ -26,9 +31,9 @@ export default function AssistantPage() {
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
 
-  function handleSend(promptText) {
-    const textToSend = promptText || input
-    if (!textToSend.trim()) return
+  async function handleSend(promptText) {
+    const textToSend = (promptText || input).trim()
+    if (!textToSend || isTyping) return
 
     const userMsg = {
       sender: 'user',
@@ -40,22 +45,36 @@ export default function AssistantPage() {
     if (!promptText) setInput('')
     setIsTyping(true)
 
-    setTimeout(() => {
-      const reply = generateAyurvedicResponse(textToSend, user)
+    try {
+      const ans = await answerQuestion(textToSend, user)
       setMessages((prev) => [
         ...prev,
         {
           sender: 'assistant',
-          text: reply,
+          text: ans.text,
+          source: ans.source,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ])
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: 'assistant',
+          text: 'Sorry, I could not answer just now. Please try again, or ask the front desk for help.',
+          source: 'error',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ])
+    } finally {
       setIsTyping(false)
-    }, 600)
+    }
   }
 
+
+
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="w-full -mx-4 lg:-mx-8 px-4 lg:px-8 space-y-6">
       <PageHeader
         title="AyurSutra Panchakarma Assistant"
         subtitle="AI clinical information assistant for Panchakarma therapies, preparatory regimens, and follow-up guidance"
@@ -67,14 +86,14 @@ export default function AssistantPage() {
         <div>
           <span className="font-bold">Clinical &amp; RBAC Safety Notice:</span>
           <p className="text-amber-800 mt-0.5">
-            This assistant provides educational information, preparation instructions, and scheduled session reminders. Under strict clinical safety guidelines, it does not diagnose medical conditions, prescribe herbal medicines, or bypass doctor prescriptions.
+            This assistant provides educational information and preparation instructions. Under strict clinical safety guidelines, it does not diagnose medical conditions, prescribe herbal medicines, or bypass doctor prescriptions.
           </p>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Chat window */}
-        <Card className="lg:col-span-2 flex flex-col h-[560px] border-stone-200">
+      <div className="grid lg:grid-cols-4 gap-5 items-stretch">
+        {/* Chat window — covers the major part of the screen */}
+        <Card className="lg:col-span-3 flex flex-col h-[72vh] min-h-[600px] border-stone-200">
           <div className="flex-1 overflow-y-auto space-y-3 p-2">
             {messages.map((m, idx) => (
               <div
@@ -90,7 +109,7 @@ export default function AssistantPage() {
                 >
                   <p className="whitespace-pre-line">{m.text}</p>
                   <span
-                    className={`block text-[9.5px] mt-1 text-right ${
+                    className={`flex items-center justify-end gap-1.5 text-[9.5px] mt-1 text-right ${
                       m.sender === 'user' ? 'text-emerald-200' : 'text-stone-400'
                     }`}
                   >
@@ -101,7 +120,7 @@ export default function AssistantPage() {
             ))}
             {isTyping && (
               <div className="flex items-center gap-1.5 text-stone-400 text-xs py-2 px-3">
-                <span className="animate-pulse">Consulting classical Panchakarma texts…</span>
+                <span className="animate-pulse">Thinking about your question…</span>
               </div>
             )}
           </div>
@@ -128,62 +147,26 @@ export default function AssistantPage() {
           </div>
         </Card>
 
-        {/* Quick Question Prompts */}
-        <div className="space-y-4">
-          <Card>
-            <h3 className="text-xs font-bold text-stone-800 uppercase tracking-wider mb-2">
-              Frequently Inquired Topics
-            </h3>
-            <div className="space-y-2">
-              {QUICK_PROMPTS.map((prompt, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSend(prompt)}
-                  className="w-full text-left p-2.5 rounded-lg border border-stone-200 hover:border-emerald-500 hover:bg-emerald-50/40 text-xs text-stone-700 transition-all cursor-pointer block"
-                >
-                   {prompt}
-                </button>
-              ))}
-            </div>
-          </Card>
-
-          <Card className="bg-stone-50 border-stone-200 text-xs space-y-2">
-            <h4 className="font-bold text-stone-900">Current User Scope</h4>
-            <p className="text-stone-600">
-              Logged in as: <strong className="text-stone-900">{user?.name}</strong> ({user?.roleLabel || user?.role})
-            </p>
-            <p className="text-stone-500 text-[10.5px] leading-relaxed">
-              Role permissions strictly enforced. Access to clinical EMR records and treatment adjustments restricted to authorized Vaidya accounts.
-            </p>
-          </Card>
-        </div>
+        {/* Frequently Inquired Topics — slim side column, same height as chat */}
+        <Card className="lg:col-span-1 flex flex-col h-[72vh] min-h-[600px]">
+          <h3 className="text-xs font-bold text-stone-800 uppercase tracking-wider mb-3">
+            Frequently Inquired Topics
+          </h3>
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            {QUICK_PROMPTS.map((prompt, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleSend(prompt)}
+                className="w-full text-left p-3 rounded-lg border border-stone-200 hover:border-emerald-500 hover:bg-emerald-50/40 text-xs text-stone-700 transition-all cursor-pointer block"
+              >
+                 {prompt}
+              </button>
+            ))}
+          </div>
+        </Card>
       </div>
     </div>
   )
 }
 
-function generateAyurvedicResponse(query, user) {
-  const q = query.toLowerCase()
 
-  if (q.includes('5') || q.includes('classical') || q.includes('procedures')) {
-    return `The classical 5 Pradhana Karma cleansing procedures (Panchakarma) are:\n\n1. **Vamana** (Therapeutic Emesis) — Clears deep-seated Kapha dosha from the chest and stomach.\n2. **Virechana** (Therapeutic Purgation) — Eliminates excess Pitta from the liver, gallbladder, and small intestine.\n3. **Basti** (Medicated Enema) — The supreme therapy pacifying Vata dosha across the colon and nervous system.\n4. **Nasya** (Transnasal Medication) — Cleanses toxins from head, neck, eyes, and sinuses (Urdhva Jatrugata).\n5. **Raktamokshana** (Therapeutic Bloodletting) — Purifies toxic blood in chronic dermatological & vascular conditions.`
-  }
-
-  if (q.includes('abhyanga') || q.includes('prepare') || q.includes('swedana')) {
-    return `**Pre-Therapy Preparation for Abhyanga & Swedana:**\n\n• Ensure a light meal at least 2 hours prior to the session.\n• Wear comfortable, loose cotton attire that you do not mind touching medicated oils.\n• Arrive 10 minutes early to rest and normalize your resting heart rate.\n• Please inform your assigned therapist of any skin sensitivities, localized tenderness, or recent dizziness before starting.`
-  }
-
-  if (q.includes('samsarjana') || q.includes('diet') || q.includes('basti')) {
-    return `**Samsarjana Krama (Post-Cleanse Graduated Diet):**\n\nFollowing internal cleansing (such as Basti or Virechana), the digestive fire (Agni) is delicate:\n\n1. **Phase 1 (Days 1–2):** Thin warm rice water (*Peya*) with rock salt.\n2. **Phase 2 (Days 3–4):** Semi-solid rice gruel (*Vilepi*) prepared with mild digestive cumin.\n3. **Phase 3 (Days 5–7):** Green gram soup (*Yusha*) with unpolished rice and cow's ghee.\n\nStrictly avoid: Cold beverages, raw salads, curd, fermented bakery foods, and day sleep.`
-  }
-
-  if (q.includes('shirodhara') || q.includes('avoid')) {
-    return `**Post-Shirodhara Care Guidelines:**\n\n• Keep your head warmly covered with a soft cloth; avoid exposure to direct breeze, fan, or AC.\n• Avoid looking at bright mobile screens, TVs, or reading for at least 2 hours.\n• Do not wash your hair immediately; let the herbal oil nourish the scalp for 1–2 hours before a lukewarm shower.\n• Maintain a quiet, meditative environment to maximize nervous system pacification.`
-  }
-
-  if (q.includes('room') || q.includes('facility') || q.includes('shala')) {
-    return `AyurSutra features dedicated specialized Panchakarma therapy chambers:\n\n• **Abhyanga Shala 1 & 2** — Authentic Dronis with synchronized therapist facilities\n• **Shirodhara Kutir** — Soundproof chamber with precision brass dhara vessels\n• **Bashpa Swedana Kaksha** — Herbal steam generators and Nadi Sweda\n• **Basti & Chikitsa Shala** — Dedicated sterile en-suite therapy room\n• **Nasya & Vamana Shala** — Reclining ergonomic chairs and emesis monitoring stations\n• **General Panchakarma Shala** — Multi-purpose room for Kati & Janu Basti dough rings`
-  }
-
-  return `Thank you for your question regarding "${query}". In Panchakarma, every treatment is customized to the patient's unique Prakriti (constitution) and Vikriti (imbalance). Please ensure you consult Dr. Meera Nair or your assigned Vaidya before altering any prescribed therapy or diet schedule.`
-}

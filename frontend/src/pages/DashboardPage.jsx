@@ -501,7 +501,7 @@ function DashboardBanner({ tag, title, description, primaryAction, secondaryActi
             {tag}
           </span>
         )}
-        <h1 className="text-[22.5px] sm:text-[26.5px] font-bold tracking-tight" style={{ fontFamily: "'EB Garamond', serif" }}>
+        <h1 className="text-[22.5px] sm:text-[26.5px] font-bold tracking-tight">
           {title}
         </h1>
         <p className="text-[14.5px] mt-1.5 max-w-xl leading-relaxed" style={{ color: 'rgba(240,253,244,0.88)' }}>
@@ -538,7 +538,7 @@ function StatCard({ label, value, sub, highlight }) {
   return (
     <div className="p-4 rounded-2xl border transition-all shadow-xs hover:shadow-md hover:-translate-y-0.5 duration-300" style={{ backgroundColor: highlight ? '#f0fdf4' : '#ffffff', borderColor: highlight ? '#bbf7d0' : '#dcfce7' }}>
       <div className="mb-1.5">
-        <span className="text-[22.5px] sm:text-[26.5px] font-bold" style={{ color: highlight ? '#15803d' : '#14532d', fontFamily: "'EB Garamond', serif" }}>
+        <span className="text-[22.5px] sm:text-[26.5px] font-bold" style={{ color: highlight ? '#15803d' : '#14532d' }}>
           {value}
         </span>
       </div>

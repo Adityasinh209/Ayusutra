@@ -113,7 +113,7 @@ export default function LandingPage() {
             </span>
           </TextReveal>
 
-          <TextReveal as="h1" delay={0.2} className="text-4xl md:text-6xl lg:text-7xl font-normal leading-tight max-w-4xl mb-6" style={{ fontFamily: "'EB Garamond', serif", color: '#ffffff' }}>
+          <TextReveal as="h1" delay={0.2} className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight max-w-4xl mb-6" style={{ color: '#ffffff' }}>
             Digitizing Panchakarma Care.
             <br />
             <span style={{ color: '#bbf7d0' }}>Smarter Appointments. Better Patient Experience.</span>
@@ -144,7 +144,7 @@ export default function LandingPage() {
               { value: '100%', label: 'Digital Patient Records' },
             ].map((s, idx) => (
               <TextReveal key={s.label} staggerIndex={idx} staggerStep={0.1} className="text-center">
-                <div className="text-3xl font-bold" style={{ fontFamily: "'EB Garamond', serif", color: '#bbf7d0' }}>{s.value}</div>
+                <div className="text-3xl font-bold" style={{ color: '#bbf7d0' }}>{s.value}</div>
                 <div className="text-xs mt-1 uppercase tracking-wider" style={{ color: 'rgba(240,253,244,0.65)' }}>{s.label}</div>
               </TextReveal>
             ))}
@@ -165,24 +165,24 @@ export default function LandingPage() {
         <div className="relative grid lg:grid-cols-2 gap-16 items-center">
           <div>
             <TextReveal delay={0.1}>
-              <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#16a34a' }}>
+              <span className="inline-flex items-center gap-2 text-sm md:text-[15px] font-semibold uppercase tracking-widest mb-3" style={{ color: '#16a34a' }}>
                 <img src="/ornament-flower.svg" alt="" className="w-4 h-4 opacity-60" /> About AyurSutra
               </span>
             </TextReveal>
 
-            <TextReveal as="h2" delay={0.2} className="text-3xl md:text-5xl font-normal mb-6 leading-tight" style={{ fontFamily: "'EB Garamond', serif", color: '#14532d' }}>
+            <TextReveal as="h2" delay={0.2} className="text-3xl md:text-4xl lg:text-[2.75rem] font-bold mb-6 leading-snug" style={{ color: '#14532d' }}>
               A Complete Digital Solution
               <br />for Panchakarma Centers
             </TextReveal>
 
-            <TextReveal as="p" delay={0.3} className="text-[16px] leading-relaxed mb-4" style={{ color: '#57534e' }}>
+            <TextReveal as="p" delay={0.3} className="text-base md:text-[17px] leading-relaxed mb-4" style={{ color: '#44403c' }}>
               AyurSutra is an AI-powered patient management platform built specifically for Panchakarma treatment centers.
               Unlike traditional hospital management systems, it is designed around Ayurveda-specific workflows, enabling
               healthcare professionals to efficiently manage consultations, therapy planning, appointments, Electronic
               Medical Records (EMR), billing, inventory, and follow-up care through a single integrated platform.
             </TextReveal>
 
-            <TextReveal as="p" delay={0.4} className="text-[16px] leading-relaxed mb-6" style={{ color: '#57534e' }}>
+            <TextReveal as="p" delay={0.4} className="text-base md:text-[17px] leading-relaxed mb-6" style={{ color: '#44403c' }}>
               The system improves coordination between therapists, receptionists, and patients while reducing
               paperwork and manual scheduling. With AI-assisted therapist recommendations and digital treatment records,
               AyurSutra helps treatment centers deliver organized, efficient, and patient-centric healthcare services.
@@ -190,7 +190,7 @@ export default function LandingPage() {
 
             {/* Panchakarma therapy gallery – moved from dashboards to About (80% white / 20% green) */}
             <TextReveal delay={0.42} className="mb-8">
-              <p className="text-[10.5px] font-semibold uppercase tracking-widest mb-2" style={{ color: '#16a34a' }}>Authentic Panchakarma Therapies</p>
+              <p className="text-sm md:text-[15px] font-semibold uppercase tracking-widest mb-3" style={{ color: '#15803d' }}>Authentic Panchakarma Therapies</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div className="overflow-hidden rounded-xl border border-green-100"><img src="/images/therapies/shirodhara.jpg" alt="Shirodhara" className="w-full h-24 object-cover hover:scale-105 transition-transform duration-500" loading="lazy" /></div>
                 <div className="overflow-hidden rounded-xl border border-green-100"><img src="/images/therapies/abhyanga-face.jpg" alt="Abhyanga" className="w-full h-24 object-cover hover:scale-105 transition-transform duration-500" loading="lazy" /></div>
@@ -201,7 +201,7 @@ export default function LandingPage() {
                 <div className="overflow-hidden rounded-xl border border-green-100"><img src="/images/therapies/spa-therapy.jpg" alt="Swedana" className="w-full h-24 object-cover hover:scale-105 transition-transform duration-500" loading="lazy" /></div>
                 <div className="overflow-hidden rounded-xl border border-green-100"><img src="/images/therapies/ayurveda-massage.jpg" alt="Ayurveda Massage" className="w-full h-24 object-cover hover:scale-105 transition-transform duration-500" loading="lazy" /></div>
               </div>
-              <p className="text-[10.5px] mt-2 text-center" style={{ color: '#86efac' }}>Shirodhara · Abhyanga · Kizhi · Pizhichil · Panchakarma Suite · Spine Therapy · Swedana · Ayurveda Massage</p>
+              <p className="text-[13px] sm:text-sm mt-2 text-center font-medium" style={{ color: '#15803d' }}>Shirodhara · Abhyanga · Kizhi · Pizhichil · Panchakarma Suite · Spine Therapy · Swedana · Ayurveda Massage</p>
             </TextReveal>
 
             <TextReveal delay={0.5} className="flex gap-4">
@@ -211,11 +211,11 @@ export default function LandingPage() {
             </TextReveal>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {ABOUT_FEATURES.map((f, idx) => (
-              <TextReveal key={f.title} staggerIndex={idx} staggerStep={0.1} className="p-5 rounded-2xl bg-white border border-green-100 hover:border-green-200 hover:shadow-md transition-all" style={{ backgroundColor: '#ffffff', borderColor: '#dcfce7' }}>
-                <h4 className="text-[16px] font-bold mb-1" style={{ color: '#14532d' }}>{f.title}</h4>
-                <p className="text-[14px] leading-relaxed" style={{ color: '#57534e' }}>{f.desc}</p>
+              <TextReveal key={f.title} staggerIndex={idx} staggerStep={0.1} className="p-5 md:p-6 rounded-2xl bg-white border border-green-100 hover:border-green-200 hover:shadow-md transition-all" style={{ backgroundColor: '#ffffff', borderColor: '#dcfce7' }}>
+                <h4 className="text-[17px] md:text-lg font-bold mb-1.5 leading-snug" style={{ color: '#14532d' }}>{f.title}</h4>
+                <p className="text-[15px] md:text-base leading-relaxed" style={{ color: '#44403c' }}>{f.desc}</p>
               </TextReveal>
             ))}
           </div>
@@ -260,7 +260,7 @@ export default function LandingPage() {
           ref={heroTextRef}
           className="relative z-10 text-center font-normal px-6 select-none panchakarma-hero-text"
           style={{
-            fontFamily: "'EB Garamond', Georgia, serif",
+            fontFamily: "'Work Sans', sans-serif",
             fontSize: 'clamp(2.2rem, 7vw, 5rem)',
             lineHeight: 1.05,
             letterSpacing: '-0.02em',
@@ -314,7 +314,7 @@ export default function LandingPage() {
                 <img src="/ornament-leaf.svg" alt="" className="w-4 h-4 opacity-50" /> Our Therapies
               </span>
             </TextReveal>
-            <TextReveal as="h2" delay={0.2} className="text-3xl md:text-5xl font-normal" style={{ fontFamily: "'EB Garamond', serif", color: '#14532d' }}>
+            <TextReveal as="h2" delay={0.2} className="text-3xl md:text-5xl font-bold" style={{ color: '#14532d' }}>
               Panchakarma Therapies Managed by AyurSutra
             </TextReveal>
             <TextReveal as="p" delay={0.3} className="mt-4 text-[16px] max-w-2xl mx-auto leading-relaxed" style={{ color: '#57534e' }}>
@@ -326,7 +326,7 @@ export default function LandingPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {SERVICES.map((s, idx) => (
               <TextReveal key={s.title} staggerIndex={idx} staggerStep={0.08} className="group p-6 rounded-2xl transition-all hover:shadow-md cursor-default bg-white border border-green-100 hover:border-green-200" style={{ backgroundColor: '#ffffff', borderColor: '#dcfce7' }}>
-                <h3 className="text-[20px] font-normal mb-2" style={{ fontFamily: "'EB Garamond', serif", color: '#14532d' }}>{s.title}</h3>
+                <h3 className="text-[20px] font-bold mb-2" style={{ color: '#14532d' }}>{s.title}</h3>
                 <p className="text-[14px] leading-relaxed" style={{ color: '#57534e' }}>{s.desc}</p>
               </TextReveal>
             ))}
@@ -343,7 +343,7 @@ export default function LandingPage() {
                 <img src="/ornament-flower.svg" alt="" className="w-4 h-4 opacity-50" /> Why AyurSutra
               </span>
             </TextReveal>
-            <TextReveal as="h2" delay={0.2} className="text-3xl md:text-5xl font-normal" style={{ fontFamily: "'EB Garamond', serif", color: '#14532d' }}>
+            <TextReveal as="h2" delay={0.2} className="text-3xl md:text-5xl font-bold" style={{ color: '#14532d' }}>
               Built for Modern Panchakarma Centers
             </TextReveal>
           </div>
@@ -351,7 +351,7 @@ export default function LandingPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {WHY_US.map((w, idx) => (
               <TextReveal key={w.title} staggerIndex={idx} staggerStep={0.1} className="text-center p-5 rounded-2xl bg-green-50/50 border border-green-100">
-                <h4 className="text-[18px] font-normal mb-2" style={{ fontFamily: "'EB Garamond', serif", color: '#14532d' }}>{w.title}</h4>
+                <h4 className="text-[18px] font-semibold mb-2" style={{ color: '#14532d' }}>{w.title}</h4>
                 <p className="text-[14px] leading-relaxed" style={{ color: '#57534e' }}>{w.desc}</p>
               </TextReveal>
             ))}
@@ -366,7 +366,7 @@ export default function LandingPage() {
             <TextReveal delay={0.1}>
               <span className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#16a34a' }}>Patient Stories</span>
             </TextReveal>
-            <TextReveal as="h2" delay={0.2} className="text-3xl md:text-5xl font-normal" style={{ fontFamily: "'EB Garamond', serif", color: '#14532d' }}>
+            <TextReveal as="h2" delay={0.2} className="text-3xl md:text-5xl font-bold" style={{ color: '#14532d' }}>
               Words from Those We've Healed
             </TextReveal>
           </div>
@@ -393,7 +393,7 @@ export default function LandingPage() {
       <section className="relative overflow-hidden px-6 lg:px-16 py-20 text-center" style={{ background: 'linear-gradient(135deg, #15803d 0%, #166534 60%, #14532d 100%)' }}>
         <img src="/ornament-leaf.svg" alt="" className="absolute left-6 top-6 w-32 h-32 opacity-10 pointer-events-none" />
         <img src="/ornament-flower.svg" alt="" className="absolute right-6 bottom-6 w-40 h-40 opacity-10 pointer-events-none" />
-        <TextReveal as="h2" delay={0.1} className="text-3xl md:text-5xl font-normal text-white mb-4" style={{ fontFamily: "'EB Garamond', serif" }}>
+        <TextReveal as="h2" delay={0.1} className="text-3xl md:text-5xl font-bold text-white mb-4">
           Begin Your Healing Journey Today
         </TextReveal>
         <TextReveal as="p" delay={0.2} className="text-sm max-w-xl mx-auto mb-8" style={{ color: 'rgba(240,253,244,0.85)' }}>
