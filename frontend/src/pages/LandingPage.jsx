@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { useRef, useEffect } from 'react'
 import TextReveal from '../components/TextReveal.jsx'
+import { useAuth } from '../hooks/useAuth.jsx'
+import ClerkAuthControls from '../components/ClerkAuthControls.jsx'
 
 // ─── Palette — 80% White / 20% Green Ayurvedic (matches Dashboard) ───────────
 // Primary:  #15803d / #166534 (green-700/800)
@@ -39,6 +41,20 @@ const TESTIMONIALS = [
 
 export default function LandingPage() {
   const navigate = useNavigate()
+  const { isAuthenticated, user } = useAuth()
+
+  function goBookConsultation() {
+    if (isAuthenticated && user?.role !== 'patient') {
+      navigate('/dashboard')
+      return
+    }
+    if (isAuthenticated) {
+      navigate('/intake')
+      return
+    }
+    navigate('/sign-in?intent=book')
+  }
+
   const heroSectionRef = useRef(null)
   const heroTextRef = useRef(null)
 
@@ -94,9 +110,7 @@ export default function LandingPage() {
           <a href="#why" className="hover:text-green-700 hover:opacity-70 transition-colors">Why Us</a>
           <a href="#contact" className="hover:text-green-700 hover:opacity-70 transition-colors">Contact</a>
         </nav>
-        <button onClick={() => navigate('/login')} className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold shadow-sm transition-all hover:opacity-90 cursor-pointer" style={{ backgroundColor: '#15803d', color: '#ffffff', border: 'none' }}>
-          Sign In →
-        </button>
+        <ClerkAuthControls />
       </header>
 
       {/* ── HERO ── green gradient + leaf ornaments */}
@@ -128,9 +142,15 @@ export default function LandingPage() {
           </TextReveal>
 
           <TextReveal delay={0.4} className="flex flex-col sm:flex-row gap-4">
-            <button onClick={() => navigate('/login')} className="px-8 py-3.5 rounded-full text-sm font-bold transition-all hover:bg-green-50 cursor-pointer shadow-lg bg-white text-green-800 border border-white">
-              Book Consultation
-            </button>
+            {isAuthenticated && user?.role !== 'patient' ? (
+              <button type="button" onClick={() => navigate('/dashboard')} className="px-8 py-3.5 rounded-full text-sm font-bold transition-all hover:bg-green-50 cursor-pointer shadow-lg bg-white text-green-800 border border-white">
+                Open Dashboard
+              </button>
+            ) : (
+              <button type="button" onClick={goBookConsultation} className="px-8 py-3.5 rounded-full text-sm font-bold transition-all hover:bg-green-50 cursor-pointer shadow-lg bg-white text-green-800 border border-white">
+                Book Consultation
+              </button>
+            )}
             <a href="#about" className="px-8 py-3.5 rounded-full text-sm font-semibold transition-all cursor-pointer bg-white/10 text-white border border-white/25 hover:bg-white/20" style={{ textDecoration: 'none' }}>
               Explore Features
             </a>
@@ -205,7 +225,7 @@ export default function LandingPage() {
             </TextReveal>
 
             <TextReveal delay={0.5} className="flex gap-4">
-              <button onClick={() => navigate('/login')} className="px-6 py-2.5 rounded-full text-sm font-semibold transition-all hover:opacity-90 cursor-pointer shadow-sm" style={{ backgroundColor: '#15803d', color: '#ffffff' }}>
+              <button type="button" onClick={goBookConsultation} className="px-6 py-2.5 rounded-full text-sm font-semibold transition-all hover:opacity-90 cursor-pointer shadow-sm" style={{ backgroundColor: '#15803d', color: '#ffffff' }}>
                 Book Consultation
               </button>
             </TextReveal>
@@ -400,7 +420,11 @@ export default function LandingPage() {
           Free medical consultation is available at our hospitals and across India at 27 branch clinics. Video and e-mail consultations also available.
         </TextReveal>
         <TextReveal delay={0.3}>
-          <button onClick={() => navigate('/login')} className="px-10 py-4 rounded-full text-sm font-bold transition-all hover:bg-green-50 cursor-pointer shadow-lg bg-white text-green-800 border border-white">
+          <button
+            type="button"
+            onClick={() => (isAuthenticated ? navigate('/dashboard') : navigate('/sign-in?intent=book'))}
+            className="px-10 py-4 rounded-full text-sm font-bold transition-all hover:bg-green-50 cursor-pointer shadow-lg bg-white text-green-800 border border-white"
+          >
             Access Patient Portal →
           </button>
         </TextReveal>

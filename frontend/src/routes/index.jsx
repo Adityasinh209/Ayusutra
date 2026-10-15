@@ -1,12 +1,13 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import ProtectedRoute from './ProtectedRoute.jsx'
 import AppLayout from '../layouts/AppLayout.jsx'
-import AuthLayout from '../layouts/AuthLayout.jsx'
 import { PageSpinner } from '../components/Spinner.jsx'
 
 const LandingPage = lazy(() => import('../pages/LandingPage.jsx'))
-const LoginPage = lazy(() => import('../pages/LoginPage.jsx'))
+const SignInPage = lazy(() => import('../pages/SignInPage.jsx'))
+const SignUpPage = lazy(() => import('../pages/SignUpPage.jsx'))
+const PatientIntakePage = lazy(() => import('../pages/PatientIntakePage.jsx'))
 const DashboardPage = lazy(() => import('../pages/DashboardPage.jsx'))
 const PatientsPage = lazy(() => import('../pages/patients/PatientsPage.jsx'))
 const PatientDetailPage = lazy(() => import('../pages/patients/PatientDetailPage.jsx'))
@@ -21,6 +22,11 @@ const InventoryPage = lazy(() => import('../pages/inventory/InventoryPage.jsx'))
 const BillingPage = lazy(() => import('../pages/billing/BillingPage.jsx'))
 const FollowupsPage = lazy(() => import('../pages/followups/FollowupsPage.jsx'))
 const AssistantPage = lazy(() => import('../pages/assistant/AssistantPage.jsx'))
+
+function LegacyLoginRedirect() {
+  const location = useLocation()
+  return <Navigate to={`/sign-in${location.search}`} replace />
+}
 
 function AuthedRoute({ children, roles }) {
   return (
@@ -37,14 +43,21 @@ export default function AppRoutes() {
         {/* Public landing page */}
         <Route path="/" element={<LandingPage />} />
 
-        {/* Auth */}
+        {/* Auth — Clerk sign-in; /login redirects for old links */}
+        <Route path="/sign-in" element={<SignInPage />} />
+        <Route path="/sign-in/*" element={<SignInPage />} />
+        <Route path="/login" element={<LegacyLoginRedirect />} />
+        <Route path="/login/*" element={<LegacyLoginRedirect />} />
+        <Route path="/sign-up" element={<SignUpPage />} />
+        <Route path="/sign-up/*" element={<SignUpPage />} />
+        <Route path="/select-role" element={<Navigate to="/sign-in" replace />} />
         <Route
-          path="/login"
-          element={
-            <AuthLayout>
-              <LoginPage />
-            </AuthLayout>
-          }
+          path="/intake"
+          element={(
+            <ProtectedRoute>
+              <PatientIntakePage />
+            </ProtectedRoute>
+          )}
         />
 
         <Route path="/dashboard" element={<AuthedRoute><DashboardPage /></AuthedRoute>} />
