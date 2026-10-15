@@ -24,7 +24,7 @@ export default function Modal({ open, onClose, title, children, footer, size = '
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className={`relative z-10 w-full ${sizeClasses[size]} rounded-2xl bg-white shadow-2xl animate-scale-in`}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-warm-200">
-          <h3 className="text-lg font-semibold text-warm-900 font-serif">{title}</h3>
+          <h3 className="text-lg font-semibold text-warm-900">{title}</h3>
           <button onClick={onClose} className="text-warm-400 hover:text-warm-600 text-2xl leading-none cursor-pointer transition-colors">
             ×
           </button>

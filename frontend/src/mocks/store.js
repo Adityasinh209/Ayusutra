@@ -79,6 +79,14 @@ function init() {
 
 init()
 
+// One-time cleanup: chat history / FAQ cache storage was removed —
+// assistant answers are live only and never stored.
+for (const legacy of [`${NS}:chat_histories`, `${NS}:faq_cache`, `${NS}:faq-candidates`]) {
+  try {
+    localStorage.removeItem(legacy)
+  } catch { /* ignore */ }
+}
+
 export function getAll(entity) {
   let data = load(entity)
   if (data === null && SEEDS[entity]) {
