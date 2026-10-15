@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
+import { UserButton } from '@clerk/react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import Badge from '../components/Badge.jsx'
 
@@ -31,6 +32,17 @@ const NAV_BY_ROLE = {
     { to: '/therapist/sessions', label: 'Therapy Sessions' },
     { to: '/followups', label: 'Follow-up Tracking' },
   ],
+  doctor: [
+    { to: '/dashboard', label: 'Dashboard' },
+    { to: '/patients', label: 'Patients' },
+    { to: '/consultation', label: 'Ayurvedic Assessment' },
+    { to: '/plans', label: 'Panchakarma Plans' },
+    { to: '/scheduling', label: 'Smart Scheduling' },
+    { to: '/appointments', label: 'Therapy Sessions' },
+    { to: '/therapist/sessions', label: 'Session Log' },
+    { to: '/followups', label: 'Follow-up Tracking' },
+    { to: '/masters', label: 'Panchakarma Masters' },
+  ],
   patient: [
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/appointments', label: 'My Therapy Sessions' },
@@ -39,9 +51,14 @@ const NAV_BY_ROLE = {
 }
 
 export default function AppLayout({ children }) {
-  const { user, logout } = useAuth()
+  const { user, logout, isClerkSignedIn } = useAuth()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+
+  async function handleLogout() {
+    await logout()
+    navigate('/')
+  }
 
   const navItems = user?.role === 'patient'
     ? [
@@ -52,11 +69,6 @@ export default function AppLayout({ children }) {
       ]
     : NAV_BY_ROLE[user?.role] ?? NAV_BY_ROLE['therapist']
   const canUseAssistant = user?.role === 'patient' || user?.role === 'admin'
-
-  function handleLogout() {
-    logout()
-    navigate('/login')
-  }
 
   // Role-based badge colors using new theme
   const getRoleBadgeClass = (role) => {
@@ -107,14 +119,18 @@ export default function AppLayout({ children }) {
         <div className="px-4 py-4 border-t border-warm-200 bg-warm-50">
           <p className="text-xs font-bold truncate text-warm-900">{user?.name}</p>
           <p className="text-[10.5px] mb-2 truncate text-warm-500">{user?.email}</p>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <Badge label={user?.roleLabel || user?.role} className={getRoleBadgeClass(user?.role)} />
-            <button
-              onClick={handleLogout}
-              className="text-xs font-semibold text-warm-500 hover:text-green-700 transition-colors cursor-pointer"
-            >
-              Sign out
-            </button>
+            <div className="flex items-center gap-2">
+              {isClerkSignedIn && <UserButton />}
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="text-xs font-semibold text-warm-500 hover:text-green-700 transition-colors cursor-pointer"
+              >
+                Sign out
+              </button>
+            </div>
           </div>
         </div>
       </aside>
@@ -157,7 +173,9 @@ export default function AppLayout({ children }) {
                 AyurSutra Assistant
               </button>
             )}
+            {isClerkSignedIn && <UserButton />}
             <button
+              type="button"
               onClick={handleLogout}
               className="text-xs font-medium text-warm-500 hover:text-green-700 transition-colors cursor-pointer"
             >

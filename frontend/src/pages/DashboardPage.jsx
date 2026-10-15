@@ -27,6 +27,9 @@ export default function DashboardPage() {
   const isPatient = role === 'patient'
 
   useEffect(() => {
+    if (!user) return
+    setLoading(true)
+    setData(null)
     async function load() {
       try {
         const [therapies, therapists, rooms] = await Promise.all([
@@ -89,7 +92,10 @@ export default function DashboardPage() {
         const bookedRoomIds = new Set(todayAppts.map((a) => a.roomId))
         const roomUtilization = rooms.length > 0 ? Math.round((bookedRoomIds.size / rooms.length) * 100) : 0
 
-        const currentTherapist = therapists.find((th) => th.email === user.email) || therapists[0]
+        const currentTherapist =
+          therapists.find((th) => th.id === user?.therapistId) ||
+          therapists.find((th) => th.email === user?.email) ||
+          therapists[0]
         const therapistSessions = appointments.filter(
           (a) => a.therapistId === currentTherapist?.id || (a.date === today && a.status !== 'Cancelled')
         )
@@ -117,9 +123,15 @@ export default function DashboardPage() {
       }
     }
     load()
-  }, [isPatient, role, user.email, user.patientId])
+  }, [isPatient, role, user, user?.email, user?.patientId, user?.therapistId])
 
-  if (loading || !data) return <PageSpinner />
+  if (!user) return <PageSpinner />
+  if (loading) return <PageSpinner />
+  if (!data) {
+    return (
+      <p className="text-sm text-red-700">Could not load dashboard data. Refresh the page and try again.</p>
+    )
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">

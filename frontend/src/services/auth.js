@@ -70,3 +70,10 @@ export function getSession() {
     return null
   }
 }
+
+export function updateSession(patch) {
+  const current = getSession() || {}
+  const next = { ...current, ...patch }
+  localStorage.setItem(SESSION_KEY, JSON.stringify(next))
+  return next
+}

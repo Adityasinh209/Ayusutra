@@ -1,30 +1,62 @@
-import { createContext, useContext, useState, useCallback } from 'react'
-import { login as loginService, loginAs as loginAsService, logout as logoutService, getSession } from '../services/auth.js'
+import { createContext, useContext, useState, useMemo, useCallback } from 'react'
+import { useClerk, useUser } from '@clerk/react'
+import { login as loginService, loginAs as loginAsService, logout as logoutService, getSession, updateSession } from '../services/auth.js'
+import { mapClerkUserToClinicUser } from '../auth/mapClerkUser.js'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => getSession())
+  const { isLoaded: clerkLoaded, isSignedIn, user: clerkUser } = useUser()
+  const { signOut } = useClerk()
+  const [sessionUser, setSessionUser] = useState(() => getSession())
+
+  const clerkMapped = useMemo(() => {
+    if (!isSignedIn || !clerkUser) return null
+    return mapClerkUserToClinicUser(clerkUser)
+  }, [isSignedIn, clerkUser])
+
+  const user = sessionUser || clerkMapped
 
   const login = useCallback(async (email, password) => {
     const session = await loginService(email, password)
-    setUser(session)
+    setSessionUser(session)
     return session
   }, [])
 
   const loginAs = useCallback(async (role) => {
     const session = await loginAsService(role)
-    setUser(session)
+    setSessionUser(session)
     return session
   }, [])
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     logoutService()
-    setUser(null)
-  }, [])
+    setSessionUser(null)
+    if (isSignedIn) {
+      await signOut({ redirectUrl: '/' })
+    }
+  }, [isSignedIn, signOut])
+
+  const updateUser = useCallback((patch) => {
+    setSessionUser((prev) => {
+      const base = prev || clerkMapped || getSession() || {}
+      return updateSession({ ...base, ...patch })
+    })
+  }, [clerkMapped])
 
   return (
-    <AuthContext.Provider value={{ user, login, loginAs, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        loginAs,
+        logout,
+        updateUser,
+        isAuthenticated: !!user,
+        isLoaded: clerkLoaded || !!sessionUser,
+        isClerkSignedIn: !!isSignedIn,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
