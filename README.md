@@ -55,9 +55,13 @@ No database or backend server is needed for Phase 1.
 ```bash
 # 1. Clone the repository
 git clone <repo-url>
-cd "Capstone Project - sem 7"
+cd Ayursutra
 
-# 2. Install frontend dependencies
+# 2. Environment (repo root — Vite loads via frontend/vite.config.js envDir)
+cp .env.example .env
+# Edit .env: set VITE_CLERK_PUBLISHABLE_KEY (required) and VITE_GROQ_API_KEY (assistant)
+
+# 3. Install frontend dependencies
 cd frontend
 npm install
 ```
@@ -71,15 +75,22 @@ cd frontend
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+Open the URL Vite prints (usually [http://localhost:5173](http://localhost:5173)).
 
-### Demo Credentials
+**Public flows (same locally and when deployed):**
+
+- Landing → **Book Consultation** → `/sign-in?intent=book` (or **Sign up** → `/sign-up`)
+- After auth → **Patient intake** (`/intake`) → **Dashboard**
+- Legacy `/login` URLs redirect to `/sign-in`
+
+### Demo Credentials (Clerk sign-in page + mock session)
 
 | Role | Email | Password |
 |---|---|---|
-| Doctor | doctor@ayursutra.dev | Doctor@123 |
+| Therapist | therapist@ayursutra.dev | Therapist@123 |
 | Receptionist | receptionist@ayursutra.dev | Reception@123 |
-| Admin | admin@ayursutra.dev | Admin@123 |
+| Patient | patient@ayursutra.dev | Patient@123 |
+| Doctor | doctor@ayursutra.dev | Doctor@123 |
 
 ---
 
@@ -92,7 +103,7 @@ npm run test:watch    # watch mode for development
 npm run test:coverage # coverage report
 ```
 
-32 tests covering authentication, patient management, EMR, scheduling, and appointment confirmation.
+63 tests covering authentication, patients/intake, EMR, scheduling, assistant, and related services.
 
 ---
 
@@ -100,6 +111,8 @@ npm run test:coverage # coverage report
 
 ```bash
 cd frontend
+# Required at build time (inlined into the bundle):
+#   VITE_CLERK_PUBLISHABLE_KEY=pk_... npm run build
 npm run build
 ```
 
@@ -122,20 +135,35 @@ The deployed site will be a static frontend only. Since this prototype uses `loc
 
 ## Deploying on Vercel
 
-This repository now includes a root `vercel.json` so Vercel can deploy the Vite app from `frontend/` without extra restructuring.
+This repository includes a root `vercel.json` so Vercel builds the Vite app from `frontend/` without restructuring.
 
-1. Push the repository to GitHub.
-2. Import the repo into Vercel.
-3. Keep the project root as the repository root.
-4. Vercel will use the included settings:
-   - Install command: `cd frontend && npm ci`
-   - Build command: `cd frontend && npm run build`
-   - Output directory: `frontend/dist`
-5. Deploy the project.
+1. Merge your feature branch to `main` (or deploy the branch from Vercel).
+2. Import the repo in Vercel with **repository root** as the project root.
+3. Confirm build settings (from `vercel.json`):
+   - Install: `cd frontend && npm ci`
+   - Build: `cd frontend && npm run build`
+   - Output: `frontend/dist`
+4. In **Vercel → Project → Settings → Environment Variables**, add (Production + Preview):
 
-The configuration also includes a rewrite from all routes to `index.html`, so React Router pages continue to work on refresh and direct URL access.
+   | Variable | Required | Notes |
+   |---|---|---|
+   | `VITE_CLERK_PUBLISHABLE_KEY` | Yes | Same Clerk **publishable** key as local `.env` |
+   | `VITE_GROQ_API_KEY` | For assistant | Same as local if you use AyurSutra Assistant |
+   | `VITE_APP_NAME` | Optional | Defaults in `.env.example` |
 
-This deploy is still frontend-only. Since the Phase 1 prototype stores data in browser `localStorage`, no backend environment variables or database services are required.
+   Do **not** add `CLERK_SECRET_KEY` to Vercel unless you add a server; the static app only needs the publishable key.
+
+5. In the **[Clerk Dashboard](https://dashboard.clerk.com)** → your application → **Paths / URLs**, allow your deployed origin (e.g. `https://your-app.vercel.app`) and set:
+
+   - Sign-in URL: `/sign-in`
+   - Sign-up URL: `/sign-up`
+   - After sign-in / sign-up: allow `/dashboard`, `/intake`, and home `/`
+
+6. Redeploy after env vars change (Vite bakes `VITE_*` into the build).
+
+SPA rewrites in `vercel.json` send all routes to `index.html`, so `/sign-in`, `/sign-up`, `/intake`, and dashboard routes work on refresh.
+
+**Parity with localhost:** Same React app and `localStorage` mock data per browser; each visitor gets their own seed data in that browser. Auth and intake behave the same once Clerk keys and allowed URLs are configured.
 
 ---
 
@@ -147,9 +175,9 @@ This deploy is still frontend-only. Since the Phase 1 prototype stores data in b
 │   ├── src/
 │   │   ├── components/        # Button, Card, Table, FormField, Modal, Alert,
 │   │   │                      # EmptyState, Spinner, Badge, PageHeader
-│   │   ├── layouts/           # AppLayout (sidebar), AuthLayout
+│   │   ├── layouts/           # AppLayout, ClerkAuthLayout
 │   │   ├── pages/
-│   │   │   ├── LoginPage.jsx
+│   │   │   ├── SignInPage.jsx, SignUpPage.jsx, PatientIntakePage.jsx
 │   │   │   ├── DashboardPage.jsx
 │   │   │   ├── patients/      # PatientsPage, NewPatientPage, PatientDetailPage
 │   │   │   ├── consultation/  # ConsultationPage
