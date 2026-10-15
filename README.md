@@ -260,4 +260,3 @@ Patient registrations, EMR records, and appointments created during the Phase 1 
 ## License
 
 This project is developed as an academic capstone. All patient data used in the prototype is synthetic and does not represent any real individuals.
->>>>>>> 4a1ee51 (feat: add Phase 1 frontend prototype and design documentation)
