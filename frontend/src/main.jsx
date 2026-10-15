@@ -17,7 +17,7 @@ createRoot(document.getElementById('root')).render(
     <ClerkProvider
       publishableKey={PUBLISHABLE_KEY}
       afterSignOutUrl="/"
-      signInUrl="/login"
+      signInUrl="/sign-in"
       signUpUrl="/sign-up"
       appearance={{
         variables: { colorPrimary: '#15803d' },

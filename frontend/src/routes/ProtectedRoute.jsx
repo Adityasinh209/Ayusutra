@@ -12,7 +12,7 @@ export default function ProtectedRoute({ children, roles }) {
   }
 
   if (!user) {
-    const loginTo = location.pathname === '/intake' ? '/login?intent=book' : '/login'
+    const loginTo = location.pathname === '/intake' ? '/sign-in?intent=book' : '/sign-in'
     return <Navigate to={loginTo} state={{ from: location }} replace />
   }
 

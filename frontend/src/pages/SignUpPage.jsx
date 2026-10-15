@@ -37,7 +37,7 @@ export default function SignUpPage() {
       <SignUp
         routing="path"
         path="/sign-up"
-        signInUrl="/login?intent=book"
+        signInUrl="/sign-in?intent=book"
         forceRedirectUrl="/intake"
         fallbackRedirectUrl="/intake"
       />

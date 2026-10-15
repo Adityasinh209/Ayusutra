@@ -52,7 +52,7 @@ export default function LandingPage() {
       navigate('/intake')
       return
     }
-    navigate('/login?intent=book')
+    navigate('/sign-in?intent=book')
   }
 
   const heroSectionRef = useRef(null)
@@ -422,7 +422,7 @@ export default function LandingPage() {
         <TextReveal delay={0.3}>
           <button
             type="button"
-            onClick={() => (isAuthenticated ? navigate('/dashboard') : navigate('/login?intent=book'))}
+            onClick={() => (isAuthenticated ? navigate('/dashboard') : navigate('/sign-in?intent=book'))}
             className="px-10 py-4 rounded-full text-sm font-bold transition-all hover:bg-green-50 cursor-pointer shadow-lg bg-white text-green-800 border border-white"
           >
             Access Patient Portal →

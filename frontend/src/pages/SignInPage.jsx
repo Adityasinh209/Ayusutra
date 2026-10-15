@@ -17,7 +17,7 @@ const DEMO_ACCOUNTS = [
   { role: 'patient', label: 'Patient', email: 'patient@ayursutra.dev', password: 'Patient@123' },
 ]
 
-export default function LoginPage() {
+export default function SignInPage() {
   const { user, login } = useAuth()
   const { isLoaded, isSignedIn } = useClerkAuth()
   const navigate = useNavigate()
@@ -114,7 +114,7 @@ export default function LoginPage() {
   if (!isLoaded) return null
 
   return (
-    <ClerkAuthLayout eyebrow="">
+    <ClerkAuthLayout eyebrow="Staff & patient portal">
       {!isSignedIn && (
         <>
           {intent === 'book' && (
@@ -132,7 +132,7 @@ export default function LoginPage() {
           )}
           <SignIn
             routing="path"
-            path="/login"
+            path="/sign-in"
             signUpUrl={intent === 'book' ? '/sign-up?intent=book' : '/sign-up'}
             forceRedirectUrl={intent === 'book' ? '/intake' : '/dashboard'}
             fallbackRedirectUrl={intent === 'book' ? '/intake' : '/dashboard'}

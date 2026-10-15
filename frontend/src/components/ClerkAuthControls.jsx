@@ -26,7 +26,7 @@ export default function ClerkAuthControls() {
   return (
     <button
       type="button"
-      onClick={() => navigate('/login')}
+      onClick={() => navigate('/sign-in')}
       className={`${btnBase} px-5 py-2.5 shadow-sm`}
       style={{ backgroundColor: '#15803d', color: '#ffffff', border: 'none' }}
     >
