@@ -13,12 +13,14 @@
 import { getAll, addItem, getById } from '../mocks/store.js'
 import { generateId } from '../utils/id.js'
 import { createPlan } from './plans.js'
+import { api, remoteReady } from './http.js'
 
 function delay(ms = 350) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 export async function getEmrForPatient(patientId) {
+  if (remoteReady()) return api(`/api/patients/${patientId}/emr`)
   await delay()
   return getAll('emr_records')
     .filter((r) => r.patientId === patientId)
@@ -31,6 +33,7 @@ export async function getEmrRecord(id) {
 }
 
 export async function createEmr(data, doctorId) {
+  if (remoteReady()) return api('/api/emr', { method: 'POST', body: data })
   await delay()
   const emrId = generateId('emr')
   const record = {

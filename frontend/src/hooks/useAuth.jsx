@@ -1,13 +1,23 @@
-import { createContext, useContext, useState, useMemo, useCallback } from 'react'
-import { useClerk, useUser } from '@clerk/react'
+import { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react'
+import { useAuth as useClerkAuth, useClerk, useUser } from '@clerk/react'
 import { login as loginService, loginAs as loginAsService, logout as logoutService, getSession, updateSession } from '../services/auth.js'
 import { mapClerkUserToClinicUser } from '../auth/mapClerkUser.js'
+import { setApiToken } from '../services/http.js'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const { isLoaded: clerkLoaded, isSignedIn, user: clerkUser } = useUser()
+  const { getToken } = useClerkAuth()
   const { signOut } = useClerk()
+
+  useEffect(() => {
+    if (!isSignedIn) {
+      setApiToken('')
+      return
+    }
+    getToken().then((value) => setApiToken(value || '')).catch(() => setApiToken(''))
+  }, [isSignedIn, clerkUser, getToken])
   const [sessionUser, setSessionUser] = useState(() => getSession())
 
   const clerkMapped = useMemo(() => {

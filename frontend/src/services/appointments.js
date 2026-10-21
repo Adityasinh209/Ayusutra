@@ -9,12 +9,14 @@
 import { getAll, addItem, updateItem, getById } from '../mocks/store.js'
 import { generateId } from '../utils/id.js'
 import { incrementPlanSession } from './plans.js'
+import { api, remoteReady } from './http.js'
 
 function delay(ms = 300) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 export async function listAppointments() {
+  if (remoteReady()) return api('/api/appointments')
   await delay()
   return getAll('appointments').sort(
     (a, b) => new Date(b.date) - new Date(a.date) || b.startTime.localeCompare(a.startTime),
@@ -22,6 +24,10 @@ export async function listAppointments() {
 }
 
 export async function getAppointmentsForPatient(patientId) {
+  if (remoteReady()) {
+    const rows = await api('/api/appointments')
+    return rows.filter((a) => a.patientId === patientId)
+  }
   await delay()
   return getAll('appointments')
     .filter((a) => a.patientId === patientId)
@@ -29,6 +35,10 @@ export async function getAppointmentsForPatient(patientId) {
 }
 
 export async function getAppointmentsForTherapist(therapistId) {
+  if (remoteReady()) {
+    const rows = await api('/api/appointments')
+    return rows.filter((a) => a.therapistId === therapistId)
+  }
   await delay()
   return getAll('appointments')
     .filter((a) => a.therapistId === therapistId)
@@ -36,6 +46,17 @@ export async function getAppointmentsForTherapist(therapistId) {
 }
 
 export async function confirmAppointment(slot, { patientId, therapyId, createdBy, treatmentStage, sessionNumber, planId }) {
+  if (remoteReady()) {
+    return api('/api/appointments', {
+      method: 'POST',
+      body: {
+        patientId, therapyId, therapistId: slot.therapistId, roomId: slot.roomId,
+        date: slot.date, startTime: slot.startTime, endTime: slot.endTime,
+        treatmentStage: treatmentStage || slot.treatmentStage, planId: planId || slot.planId || null,
+        sessionNumber,
+      },
+    })
+  }
   await delay()
 
   // Determine existing session count for sequencing if not provided
@@ -65,6 +86,12 @@ export async function confirmAppointment(slot, { patientId, therapyId, createdBy
 }
 
 export async function completeAppointment(id, { sessionNotes = '', therapistObservations = '', doctorRemarks = '' } = {}) {
+  if (remoteReady()) {
+    return api(`/api/appointments/${id}/complete`, {
+      method: 'POST',
+      body: { sessionNotes, therapistObservations, doctorRemarks },
+    })
+  }
   await delay()
   const existing = getById('appointments', id)
   const updated = updateItem('appointments', id, {
@@ -93,6 +120,7 @@ export async function completeAppointment(id, { sessionNotes = '', therapistObse
 }
 
 export async function cancelAppointment(id) {
+  if (remoteReady()) return api(`/api/appointments/${id}/cancel`, { method: 'POST' })
   await delay()
   const updated = updateItem('appointments', id, { status: 'Cancelled' })
   if (!updated) {
