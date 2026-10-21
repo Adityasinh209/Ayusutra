@@ -1,0 +1,16 @@
+from app.models.entities import (  # noqa: F401
+    Appointment,
+    AuditEvent,
+    BillingRecord,
+    EmrRecord,
+    FollowUp,
+    InventoryItem,
+    Patient,
+    PanchakarmaPlan,
+    Receptionist,
+    Therapist,
+    TherapistLeave,
+    Therapy,
+    TherapyRoom,
+    User,
+)
