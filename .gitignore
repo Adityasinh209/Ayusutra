@@ -27,6 +27,7 @@ yarn-error.log*
 
 # Testing
 coverage/
+*.db
 
 # Python (backend – Phase 2)
 __pycache__/
