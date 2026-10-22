@@ -4,12 +4,14 @@
  */
 
 import { getAll, getById } from '../mocks/store.js'
+import { api, remoteReady } from './http.js'
 
 function delay(ms = 200) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 export async function listTherapists() {
+  if (remoteReady()) return api('/api/therapists')
   await delay()
   return getAll('therapists').filter((t) => t.active)
 }

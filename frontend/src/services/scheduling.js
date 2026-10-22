@@ -18,6 +18,7 @@
  */
 
 import { candidateSlotsFor, getAll } from '../mocks/store.js'
+import { api, remoteReady } from './http.js'
 import { getTherapist, listTherapists, getLeaves } from './therapists.js'
 import { getRoom, listRooms } from './rooms.js'
 import { getTherapy } from './therapies.js'
@@ -88,6 +89,12 @@ function addMinutes(timeStr, mins) {
  * Recommends valid, constraint-checked slots for a patient and therapy.
  */
 export async function recommendSlots({ patientId, therapyId, preferredDate = '', preferredTime = '' }) {
+  if (remoteReady()) {
+    return api('/api/scheduling/recommend', {
+      method: 'POST',
+      body: { patientId, therapyId, preferredDate, preferredTime },
+    })
+  }
   await delay()
 
   const [therapy, patient, allTherapists, allRooms, existingAppts] = await Promise.all([

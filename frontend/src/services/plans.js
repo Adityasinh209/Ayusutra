@@ -6,12 +6,14 @@
 
 import { getAll, getById, addItem, updateItem } from '../mocks/store.js'
 import { generateId } from '../utils/id.js'
+import { api, remoteReady } from './http.js'
 
 function delay(ms = 250) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 export async function listPlans() {
+  if (remoteReady()) return api('/api/plans')
   await delay()
   return getAll('panchakarma_plans').sort(
     (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
@@ -19,6 +21,16 @@ export async function listPlans() {
 }
 
 export async function getPlan(id) {
+  if (remoteReady()) {
+    const rows = await api('/api/plans')
+    const plan = rows.find((p) => p.id === id)
+    if (!plan) {
+      const err = new Error('Panchakarma Plan not found.')
+      err.status = 404
+      throw err
+    }
+    return plan
+  }
   await delay()
   const plan = getById('panchakarma_plans', id)
   if (!plan) {
@@ -30,6 +42,10 @@ export async function getPlan(id) {
 }
 
 export async function getPlansForPatient(patientId) {
+  if (remoteReady()) {
+    const rows = await api('/api/plans')
+    return rows.filter((p) => p.patientId === patientId)
+  }
   await delay()
   return getAll('panchakarma_plans')
     .filter((p) => p.patientId === patientId)
@@ -37,6 +53,7 @@ export async function getPlansForPatient(patientId) {
 }
 
 export async function createPlan(data, doctorId) {
+  if (remoteReady()) return api('/api/plans', { method: 'POST', body: data })
   await delay()
   const plan = {
     id: generateId('plan'),
@@ -51,6 +68,7 @@ export async function createPlan(data, doctorId) {
 }
 
 export async function updatePlanStage(id, nextStage) {
+  if (remoteReady()) return api(`/api/plans/${id}/stage`, { method: 'PATCH', body: { treatmentStage: nextStage } })
   await delay()
   const updated = updateItem('panchakarma_plans', id, {
     treatmentStage: nextStage,

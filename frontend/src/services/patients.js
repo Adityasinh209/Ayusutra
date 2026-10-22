@@ -9,12 +9,14 @@
 
 import { getAll, getById, addItem, updateItem } from '../mocks/store.js'
 import { generateId } from '../utils/id.js'
+import { api, remoteReady } from './http.js'
 
 function delay(ms = 350) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 export async function listPatients() {
+  if (remoteReady()) return api('/api/patients')
   await delay()
   return getAll('patients').sort(
     (a, b) => new Date(b.registeredAt) - new Date(a.registeredAt),
@@ -22,6 +24,7 @@ export async function listPatients() {
 }
 
 export async function getPatient(id) {
+  if (remoteReady()) return api(`/api/patients/${id}`)
   await delay()
   const patient = getById('patients', id)
   if (!patient) {
@@ -33,6 +36,7 @@ export async function getPatient(id) {
 }
 
 export async function createPatient(data, createdByUserId) {
+  if (remoteReady()) return api('/api/patients', { method: 'POST', body: data })
   await delay()
   const all = getAll('patients')
   const duplicate = all.find(
@@ -83,6 +87,7 @@ export function patientNeedsIntake(user) {
 }
 
 export async function submitPatientIntake(data, user) {
+  if (remoteReady()) return api('/api/patients/intake', { method: 'POST', body: data })
   await delay()
   if (!user) {
     const err = new Error('You must be signed in to save patient details.')
