@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from app.db.seed_dashboard import seed_dashboard_demo
 from app.models.entities import (
     BillingRecord,
     FollowUp,
@@ -71,6 +72,7 @@ def seed(db: Session) -> None:
         db.commit()
 
     _seed_clinic_gaps(db)
+    seed_dashboard_demo(db)
 
 
 def _seed_clinic_gaps(db: Session) -> None:
