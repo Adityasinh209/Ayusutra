@@ -13,12 +13,18 @@ from app import models  # noqa: F401
 
 @asynccontextmanager
 async def lifespan(_app):
-    sync_schema(engine)
-    db = SessionLocal()
     try:
-        seed(db)
-    finally:
-        db.close()
+        sync_schema(engine)
+        db = SessionLocal()
+        try:
+            seed(db)
+        finally:
+            db.close()
+    except Exception as exc:
+        import logging
+
+        logging.getLogger("ayursutra").error("Database startup failed: %s", exc)
+        raise
     yield
 
 

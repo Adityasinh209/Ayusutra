@@ -1,6 +1,7 @@
 import ssl
 from pathlib import Path
 
+import certifi
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -11,13 +12,15 @@ from app.core.config import settings
 def _mysql_connect_args(url: str) -> dict:
     if not url.startswith("mysql"):
         return {}
-    ctx = ssl.create_default_context()
+    ctx = ssl.create_default_context(cafile=certifi.where())
     ca = settings.mysql_ssl_ca.strip()
     if ca:
         path = Path(ca)
         if path.is_file():
             ctx.load_verify_locations(str(path))
-    # Aiven and most cloud MySQL hosts require TLS.
+    bundled = Path(__file__).resolve().parents[1] / "certs" / "aiven-ca.pem"
+    if bundled.is_file():
+        ctx.load_verify_locations(str(bundled))
     return {"ssl": ctx}
 
 
