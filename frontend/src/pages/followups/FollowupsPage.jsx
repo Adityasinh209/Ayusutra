@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { listPlans, updatePlanStage } from '../../services/plans.js'
 import { listPatients } from '../../services/patients.js'
 import { listAppointments } from '../../services/appointments.js'
+import { createFollowup, listFollowups, updateFollowup } from '../../services/followups.js'
 import PageHeader from '../../components/PageHeader.jsx'
 import Card from '../../components/Card.jsx'
+import FormField, { Input, Select } from '../../components/FormField.jsx'
 import Badge from '../../components/Badge.jsx'
 import Button from '../../components/Button.jsx'
 import { PageSpinner } from '../../components/Spinner.jsx'
@@ -19,17 +21,21 @@ export default function FollowupsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
+  const [followups, setFollowups] = useState([])
+  const [draft, setDraft] = useState({ patientId: '', followupDate: '', status: 'Pending' })
 
   async function loadData() {
     try {
-      const [allPlans, allPatients, allAppts] = await Promise.all([
+      const [allPlans, allPatients, allAppts, allFollowups] = await Promise.all([
         listPlans(),
         listPatients(),
         listAppointments(),
+        listFollowups(),
       ])
       setPlans(allPlans)
       setPatients(allPatients)
       setAppointments(allAppts)
+      setFollowups(allFollowups)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -64,6 +70,51 @@ export default function FollowupsPage() {
 
       {error && <Alert message={error} onClose={() => setError(null)} className="mb-4" />}
       {success && <Alert type="success" message={success} onClose={() => setSuccess(null)} className="mb-4" />}
+
+      <Card>
+        <h3 className="mb-3 text-sm font-bold text-stone-800">Scheduled follow-ups</h3>
+        <div className="mb-4 space-y-2">
+          {followups.length === 0 && <p className="text-sm text-stone-500">No follow-up visits recorded yet.</p>}
+          {followups.map((item) => (
+            <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-stone-200 px-3 py-2 text-sm">
+              <span>{patientMap[item.patientId]?.fullName || item.patientId} · {formatDate(item.followupDate)}</span>
+              <div className="flex items-center gap-2">
+                <Badge label={item.status} />
+                {item.status !== 'Completed' && (
+                  <Button type="button" size="sm" onClick={async () => {
+                    await updateFollowup(item.id, { status: 'Completed' })
+                    setSuccess('Follow-up marked completed.')
+                    await loadData()
+                  }}>Mark completed</Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <FormField label="Patient">
+            <Select value={draft.patientId} onChange={(e) => setDraft((prev) => ({ ...prev, patientId: e.target.value }))}>
+              <option value="">Select patient</option>
+              {patients.map((patient) => <option key={patient.id} value={patient.id}>{patient.fullName}</option>)}
+            </Select>
+          </FormField>
+          <FormField label="Follow-up date">
+            <Input type="date" value={draft.followupDate} onChange={(e) => setDraft((prev) => ({ ...prev, followupDate: e.target.value }))} />
+          </FormField>
+          <div className="flex items-end">
+            <Button type="button" onClick={async () => {
+              if (!draft.patientId || !draft.followupDate) {
+                setError('Choose a patient and a follow-up date.')
+                return
+              }
+              await createFollowup(draft)
+              setDraft({ patientId: '', followupDate: '', status: 'Pending' })
+              setSuccess('Follow-up saved. It will appear on the patient dashboard after refresh.')
+              await loadData()
+            }}>Save follow-up</Button>
+          </div>
+        </div>
+      </Card>
 
       <div className="grid gap-4">
         {plans.map((plan) => {

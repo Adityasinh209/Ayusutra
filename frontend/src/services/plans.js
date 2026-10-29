@@ -12,6 +12,33 @@ function delay(ms = 250) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+export function pickActivePlan(plans = []) {
+  const ranked = [...plans].sort((a, b) => {
+    const byDate = new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+    if (Number.isNaN(byDate) || byDate === 0) return String(b.id || '').localeCompare(String(a.id || ''))
+    return byDate
+  })
+  return (
+    ranked.find((p) => p.status === 'In Progress' || p.status === 'Active')
+    || ranked.find((p) => p.status !== 'Completed')
+    || ranked[0]
+    || null
+  )
+}
+
+function planPayload(data, doctorId) {
+  return {
+    ...data,
+    doctorId,
+    treatmentStage: data.treatmentStage || 'Purva Karma',
+    status: 'In Progress',
+    completedSessions: data.completedSessions || 0,
+    procedureName: data.procedureName || data.primaryPanchakarma || 'Panchakarma Protocol',
+    assignedTherapistId: data.assignedTherapistId || null,
+    assignedRoomId: data.assignedRoomId || null,
+  }
+}
+
 export async function listPlans() {
   if (remoteReady()) return api('/api/plans')
   await delay()
@@ -55,16 +82,21 @@ export async function getPlansForPatient(patientId) {
 export async function createPlan(data, doctorId) {
   if (remoteReady()) return api('/api/plans', { method: 'POST', body: data })
   await delay()
-  const plan = {
-    id: generateId('plan'),
-    ...data,
-    doctorId,
-    treatmentStage: data.treatmentStage || 'Purva Karma',
-    status: 'In Progress',
-    completedSessions: data.completedSessions || 0,
-    createdAt: new Date().toISOString(),
+  const payload = planPayload(data, doctorId)
+  const current = pickActivePlan(
+    getAll('panchakarma_plans').filter((p) => p.patientId === data.patientId),
+  )
+  if (current && current.status !== 'Completed') {
+    return updateItem('panchakarma_plans', current.id, {
+      ...payload,
+      updatedAt: new Date().toISOString(),
+    })
   }
-  return addItem('panchakarma_plans', plan)
+  return addItem('panchakarma_plans', {
+    id: generateId('plan'),
+    ...payload,
+    createdAt: new Date().toISOString(),
+  })
 }
 
 export async function updatePlanStage(id, nextStage) {

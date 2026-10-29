@@ -8,6 +8,9 @@ import FormField, { Input, Textarea, Select } from '../../components/FormField.j
 import Button from '../../components/Button.jsx'
 import Alert from '../../components/Alert.jsx'
 import { required, validPhone, validEmail, validate } from '../../utils/validation.js'
+import OtpVerification from '../../components/otp/OtpVerification.jsx'
+import PreviousTreatmentSection from '../../components/patient-history/PreviousTreatmentSection.jsx'
+import { persistDraftHistory } from '../../services/previousTreatments.js'
 
 const INITIAL = {
   fullName: '',
@@ -33,9 +36,12 @@ export default function NewPatientPage() {
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [otpToken, setOtpToken] = useState('')
+  const [historyDrafts, setHistoryDrafts] = useState([])
 
   function set(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }))
+    if (field === 'phone') setOtpToken('')
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: null }))
   }
 
@@ -55,7 +61,13 @@ export default function NewPatientPage() {
     setLoading(true)
     setSubmitError(null)
     try {
-      const patient = await createPatient(form, user.id)
+      if (!otpToken) {
+        setSubmitError('Verify the mobile number before completing registration.')
+        setLoading(false)
+        return
+      }
+      const patient = await createPatient({ ...form, otpVerificationToken: otpToken }, user.id)
+      await persistDraftHistory(patient.id, historyDrafts)
       navigate(`/patients/${patient.id}`)
     } catch (err) {
       setSubmitError(err.message)
@@ -113,6 +125,7 @@ export default function NewPatientPage() {
                 placeholder="10-digit mobile number"
                 error={errors.phone}
                 maxLength={10}
+                disabled={Boolean(otpToken)}
               />
             </FormField>
             <FormField label="Email Address" error={errors.email}>
@@ -210,8 +223,17 @@ export default function NewPatientPage() {
           </div>
         </Card>
 
+        <OtpVerification
+          mobile={form.phone}
+          purpose="patient_register"
+          verifiedToken={otpToken}
+          onVerified={setOtpToken}
+          onChangeNumber={() => setOtpToken('')}
+        />
+        <PreviousTreatmentSection draftRecords={historyDrafts} onDraftChange={setHistoryDrafts} />
+
         <div className="flex gap-3">
-          <Button type="submit" loading={loading}>
+          <Button type="submit" loading={loading} disabled={!otpToken}>
             Save &amp; Open Profile
           </Button>
           <Button type="button" variant="secondary" onClick={() => navigate('/patients')}>

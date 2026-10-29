@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth.jsx'
 import { listPatients, getPatient } from '../../services/patients.js'
+import { getAppointmentsForPatient } from '../../services/appointments.js'
 import { listTherapies } from '../../services/therapies.js'
 import { createEmr } from '../../services/emr.js'
+import { pickOpenAppointment } from '../../services/continuity.js'
 import PageHeader from '../../components/PageHeader.jsx'
 import Card, { CardHeader } from '../../components/Card.jsx'
 import FormField, { Input, Textarea, Select } from '../../components/FormField.jsx'
@@ -44,6 +46,7 @@ export default function ConsultationPage() {
   const [patients, setPatients] = useState([])
   const [therapies, setTherapies] = useState([])
   const [selectedPatientId, setSelectedPatientId] = useState(location.state?.patientId ?? '')
+  const [linkedAppointmentId, setLinkedAppointmentId] = useState(location.state?.appointmentId ?? '')
   const [patient, setPatient] = useState(null)
   const [form, setForm] = useState(INITIAL_FORM)
   const [errors, setErrors] = useState({})
@@ -60,6 +63,30 @@ export default function ConsultationPage() {
       })
       .finally(() => setInitLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (!selectedPatientId) {
+      setLinkedAppointmentId('')
+      return undefined
+    }
+    let cancelled = false
+    const preset = location.state?.appointmentId
+    getAppointmentsForPatient(selectedPatientId)
+      .then((rows) => {
+        if (cancelled) return
+        if (preset && rows.some((row) => row.id === preset)) {
+          setLinkedAppointmentId(preset)
+          return
+        }
+        setLinkedAppointmentId(pickOpenAppointment(rows)?.id || '')
+      })
+      .catch(() => {
+        if (!cancelled) setLinkedAppointmentId(preset || '')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [selectedPatientId, location.state?.appointmentId])
 
   useEffect(() => {
     if (!selectedPatientId) {
@@ -115,6 +142,7 @@ export default function ConsultationPage() {
       await createEmr(
         {
           patientId: selectedPatientId,
+          appointmentId: linkedAppointmentId || undefined,
           ...form,
           therapyDurationMins: Number(form.therapyDurationMins),
           numberOfSessions: Number(form.numberOfSessions),
@@ -131,10 +159,8 @@ export default function ConsultationPage() {
         },
         user.id,
       )
-      setSuccess('Ayurvedic Assessment & Panchakarma Plan successfully recorded and activated.')
-      setForm(INITIAL_FORM)
-      setSelectedPatientId('')
-      setPatient(null)
+      setSuccess('Assessment saved. The therapy plan is now on this patient’s dashboard, with the package bill and follow-up.')
+      navigate(`/patients/${selectedPatientId}`)
     } catch (err) {
       setSubmitError(err.message)
     } finally {
@@ -165,6 +191,9 @@ export default function ConsultationPage() {
         {/* 1. Patient Selection */}
         <Card>
           <CardHeader title="1. Patient Selection" subtitle="Choose patient for clinical consultation" />
+          {linkedAppointmentId && (
+            <p className="mb-3 text-xs font-semibold text-green-700">This consultation is linked to the patient’s open visit. Saving also creates the package bill and follow-up.</p>
+          )}
           <FormField label="Select Patient" error={errors.patient} required>
             <Select
               value={selectedPatientId}

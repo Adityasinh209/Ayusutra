@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth.jsx'
 import { getAppointmentsForTherapist, completeAppointment, listAppointments } from '../../services/appointments.js'
 import { getPatient } from '../../services/patients.js'
@@ -18,6 +19,7 @@ import { formatDate, formatTime, calculateAge } from '../../utils/date.js'
 
 export default function TherapistSessionsPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
@@ -39,7 +41,7 @@ export default function TherapistSessionsPage() {
       } else {
         data = await listAppointments()
       }
-      setSessions(data)
+      setSessions(data.filter((row) => row.status !== 'Pending Confirmation'))
     } catch (e) {
       setError(e.message)
     } finally {
@@ -49,6 +51,20 @@ export default function TherapistSessionsPage() {
 
   useEffect(() => {
     loadSessions()
+    function reload() {
+      if (document.visibilityState === 'hidden') return
+      loadSessions()
+    }
+    window.addEventListener('focus', reload)
+    window.addEventListener('storage', reload)
+    window.addEventListener('ayursutra:data', reload)
+    document.addEventListener('visibilitychange', reload)
+    return () => {
+      window.removeEventListener('focus', reload)
+      window.removeEventListener('storage', reload)
+      window.removeEventListener('ayursutra:data', reload)
+      document.removeEventListener('visibilitychange', reload)
+    }
   }, [user?.therapistId])
 
   async function loadDetail(session) {
@@ -224,6 +240,13 @@ export default function TherapistSessionsPage() {
               )}
 
               {/* Execution / Logging Form */}
+              {selected.status === 'Confirmed' && (
+                <div className="pt-3">
+                  <Button variant="secondary" onClick={() => navigate('/consultation', { state: { patientId: selected.patientId, appointmentId: selected.id } })}>
+                    Open consultation
+                  </Button>
+                </div>
+              )}
               {canComplete && (
                 <div className="space-y-4 pt-3 border-t border-stone-100">
                   <FormField

@@ -1,21 +1,30 @@
 """Idempotent reference data. No passwords."""
 
+import base64
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
 from app.db.seed_dashboard import seed_dashboard_demo
 from app.models.entities import (
+    Appointment,
     BillingRecord,
+    EmrRecord,
     FollowUp,
     InventoryItem,
     Patient,
+    PanchakarmaPlan,
+    PreviousTreatmentHistory,
+    PreviousTreatmentReport,
     Receptionist,
     Therapist,
+    TherapistAvailability,
     Therapy,
     TherapyRoom,
     User,
 )
+
+WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
 
 def seed(db: Session) -> None:
@@ -32,13 +41,13 @@ def seed(db: Session) -> None:
                 required_therapist_specialization="Shirodhara", active=1,
             ),
             Therapist(
-                id="therapist-1", name="Amit Joshi", specialization="Abhyanga",
+                id="therapist-1", name="Amit Joshi",
                 specializations="Abhyanga,Swedana", therapy_ids="therapy-1",
                 qualification="BAMS", experience=8, shift_start="09:00", shift_end="17:00",
                 availability_status="Available", active=1,
             ),
             Therapist(
-                id="therapist-2", name="Priya Sharma", specialization="Shirodhara",
+                id="therapist-2", name="Priya Sharma",
                 specializations="Shirodhara", therapy_ids="therapy-2",
                 qualification="BAMS, MD (Panchakarma)", experience=5, shift_start="10:00", shift_end="18:00",
                 availability_status="Available", active=1,
@@ -73,6 +82,7 @@ def seed(db: Session) -> None:
 
     _seed_clinic_gaps(db)
     seed_dashboard_demo(db)
+    _seed_review_cases(db)
 
 
 def _seed_clinic_gaps(db: Session) -> None:
@@ -97,6 +107,12 @@ def _seed_clinic_gaps(db: Session) -> None:
     patient = db.get(Patient, "patient-1")
     if patient and not patient.blood_group:
         patient.blood_group = "B+"
+
+    if not db.get(User, "user-admin"):
+        db.add(User(
+            id="user-admin", email="admin@ayursutra.dev", name="Clinic Admin",
+            role="admin", role_label="Admin", phone="9876501009", active=1,
+        ))
 
     if not db.get(Receptionist, "receptionist-1") and db.get(User, "user-2"):
         db.add(Receptionist(
@@ -148,6 +164,22 @@ def _seed_clinic_gaps(db: Session) -> None:
             bill_date="2026-08-14",
         ))
 
+    for therapist_id, start, end in (("therapist-1", "09:00", "17:00"), ("therapist-2", "10:00", "18:00")):
+        if db.get(Therapist, therapist_id) and not db.query(TherapistAvailability).filter(
+            TherapistAvailability.therapist_id == therapist_id
+        ).first():
+            for day in WEEKDAYS:
+                db.add(TherapistAvailability(
+                    id=f"avail-{therapist_id}-{day}",
+                    therapist_id=therapist_id,
+                    day=day,
+                    working=1,
+                    start_time=start,
+                    end_time=end,
+                    break_start="13:00",
+                    break_end="14:00",
+                ))
+
     if not db.get(FollowUp, "followup-1") and db.get(Patient, "patient-1"):
         db.add(FollowUp(
             id="followup-1",
@@ -159,4 +191,128 @@ def _seed_clinic_gaps(db: Session) -> None:
             status="Pending",
         ))
 
+    db.commit()
+
+
+def _seed_review_cases(db: Session) -> None:
+    """Completed Rahul Patel and in-progress Priya Shah journeys for the review demo."""
+    if db.get(Patient, "patient-rahul-patel"):
+        return
+    db.add_all([
+        Patient(
+            id="patient-rahul-patel", full_name="Rahul Patel", phone="9811100001",
+            email="rahul.patel@email.com", address="18, River View, Ahmedabad",
+            date_of_birth="1988-02-11", gender="Male", blood_group="O+",
+            emergency_contact="Meera Patel - 9811100091", chief_complaint="Chronic low back stiffness",
+            medical_history="Earlier Kati Basti course at a city clinic.", prakriti="Vata",
+            phone_verified=1, registered_by="user-2", user_id="user-rahul-patel",
+        ),
+        User(
+            id="user-rahul-patel", email="rahul.patel@ayursutra.dev", name="Rahul Patel",
+            role="patient", role_label="Patient", phone="9811100001",
+            patient_id="patient-rahul-patel", active=1,
+        ),
+        Patient(
+            id="patient-priya-shah", full_name="Priya Shah", phone="9811100002",
+            email="priya.shah@email.com", address="44, Paldi, Ahmedabad",
+            date_of_birth="1994-07-19", gender="Female", blood_group="A+",
+            emergency_contact="Amit Shah - 9811100092", chief_complaint="Stress and disturbed sleep",
+            prakriti="Pitta", phone_verified=1, registered_by="user-2", user_id="user-priya-shah",
+        ),
+        User(
+            id="user-priya-shah", email="priya.shah@ayursutra.dev", name="Priya Shah",
+            role="patient", role_label="Patient", phone="9811100002",
+            patient_id="patient-priya-shah", active=1,
+        ),
+        PanchakarmaPlan(
+            id="plan-rahul-patel", patient_id="patient-rahul-patel", doctor_id="user-1",
+            emr_id="emr-rahul-patel", procedure_name="Abhyanga", primary_panchakarma="Abhyanga",
+            treatment_stage="Completed", total_sessions=7, completed_sessions=7,
+            start_date="2026-08-01", end_date="2026-08-14", assigned_therapist_id="therapist-1",
+            assigned_room_id="room-1", status="Completed",
+            doctor_instructions="Course completed. Continue warm diet.",
+            diet_plan="Warm khichdi and cumin water.", follow_up_date="2026-09-15",
+        ),
+        EmrRecord(
+            id="emr-rahul-patel", patient_id="patient-rahul-patel", doctor_id="user-1",
+            plan_id="plan-rahul-patel", symptoms="Low back stiffness", diagnosis="Vata vitiation",
+            treatment_plan="Seven Abhyanga sessions", therapy_id="therapy-1", number_of_sessions=7,
+            treatment_stage="Completed", follow_up_date="2026-09-15", appointment_id="appt-rahul-patel",
+        ),
+        Appointment(
+            id="appt-rahul-patel", patient_id="patient-rahul-patel", plan_id="plan-rahul-patel",
+            therapy_id="therapy-1", therapist_id="therapist-1", room_id="room-1",
+            date="2026-08-14", start_time="09:00", end_time="10:00", treatment_stage="Paschat Karma",
+            session_number=7, status="Completed", session_notes="Final session completed.",
+            created_by="user-2", therapist_slot_key="therapist-1|2026-08-14|09:00",
+            room_slot_key="room-1|2026-08-14|09:00",
+        ),
+        BillingRecord(
+            id="bill-rahul-patel", patient_id="patient-rahul-patel", appointment_id="appt-rahul-patel",
+            plan_id="plan-rahul-patel", invoice_number="INV-2026-RAHUL",
+            package_type="Completed Abhyanga course", items_json="[]",
+            subtotal=Decimal("7000"), discount=Decimal("0"), tax_amount=Decimal("0"),
+            total_amount=Decimal("7000"), paid_amount=Decimal("7000"),
+            payment_status="Paid", payment_method="UPI", bill_date="2026-08-14",
+        ),
+        FollowUp(
+            id="followup-rahul-patel", patient_id="patient-rahul-patel", therapist_id="therapist-1",
+            plan_id="plan-rahul-patel", followup_date="2026-09-15", reminder_sent=1, status="Completed",
+        ),
+        PreviousTreatmentHistory(
+            id="history-rahul-patel", patient_id="patient-rahul-patel",
+            hospital_name="City Ayurveda Clinic", therapist_name="Dr. Iyer",
+            treatment_name="Kati Basti", diagnosis="Lumbar Vata",
+            start_date="2025-11-01", end_date="2025-11-10",
+            medicines="Mahanarayan taila", notes="Earlier local course before AyurSutra.",
+        ),
+        PreviousTreatmentReport(
+            id="report-rahul-patel", history_id="history-rahul-patel",
+            file_name="kati-basti-report.png", content_type="image/png",
+            stored_name="rahul-kati-basti.png",
+        ),
+        PanchakarmaPlan(
+            id="plan-priya-shah", patient_id="patient-priya-shah", doctor_id="user-1",
+            emr_id="emr-priya-shah", procedure_name="Shirodhara", primary_panchakarma="Shirodhara",
+            treatment_stage="Pradhana Karma", total_sessions=7, completed_sessions=3,
+            start_date="2026-10-01", end_date="2026-11-12", assigned_therapist_id="therapist-2",
+            assigned_room_id="room-3", status="In Progress",
+            doctor_instructions="Continue Shirodhara. Avoid late nights.",
+            diet_plan="Cooling, freshly cooked meals.", follow_up_date="2026-11-20",
+        ),
+        EmrRecord(
+            id="emr-priya-shah", patient_id="patient-priya-shah", doctor_id="user-1",
+            plan_id="plan-priya-shah", symptoms="Disturbed sleep and irritability",
+            diagnosis="Pitta aggravation", treatment_plan="Seven Shirodhara sessions",
+            therapy_id="therapy-2", number_of_sessions=7, treatment_stage="Pradhana Karma",
+            follow_up_date="2026-11-20", appointment_id="appt-priya-shah",
+        ),
+        Appointment(
+            id="appt-priya-shah", patient_id="patient-priya-shah", plan_id="plan-priya-shah",
+            therapy_id="therapy-2", therapist_id="therapist-2", room_id="room-3",
+            date="2026-11-02", start_time="11:00", end_time="11:45", treatment_stage="Pradhana Karma",
+            session_number=4, status="Confirmed", session_notes="Upcoming therapy session.",
+            created_by="user-2", therapist_slot_key="therapist-2|2026-11-02|11:00",
+            room_slot_key="room-3|2026-11-02|11:00",
+        ),
+        BillingRecord(
+            id="bill-priya-shah", patient_id="patient-priya-shah", appointment_id="appt-priya-shah",
+            plan_id="plan-priya-shah", invoice_number="INV-2026-PRIYA",
+            package_type="Shirodhara course in progress", items_json="[]",
+            subtotal=Decimal("4500"), discount=Decimal("0"), tax_amount=Decimal("0"),
+            total_amount=Decimal("4500"), paid_amount=Decimal("1500"),
+            payment_status="Partial", payment_method="Cash", bill_date="2026-10-01",
+        ),
+        FollowUp(
+            id="followup-priya-shah", patient_id="patient-priya-shah", therapist_id="therapist-2",
+            plan_id="plan-priya-shah",             followup_date="2026-11-20", reminder_sent=0, status="Pending",
+        ),
+    ])
+    from app.services.uploads import upload_root
+    folder = upload_root() / "reports"
+    folder.mkdir(parents=True, exist_ok=True)
+    png = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+    )
+    (folder / "rahul-kati-basti.png").write_bytes(png)
     db.commit()

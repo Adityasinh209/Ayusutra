@@ -62,7 +62,7 @@ export const USERS = [
     password: 'Admin@123',
     role: 'admin',
     roleLabel: 'Center Administrator',
-    active: false, // Admin role removed from public login
+    active: true,
   },
 ]
 
@@ -315,7 +315,6 @@ export const THERAPISTS = [
     name: 'Amit Joshi',
     gender: 'Male',
     experienceYears: 8,
-    specialization: 'Abhyanga', // For backward compatibility with existing tests
     specializations: ['Abhyanga', 'Swedana', 'Kizhi', 'Udvartana'],
     therapyIds: ['therapy-1', 'therapy-5', 'therapy-8', 'therapy-11'],
     workingDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
@@ -328,7 +327,6 @@ export const THERAPISTS = [
     name: 'Priya Sharma',
     gender: 'Female',
     experienceYears: 6,
-    specialization: 'Shirodhara', // For backward compatibility
     specializations: ['Shirodhara', 'Abhyanga', 'Nasya', 'Kizhi'],
     therapyIds: ['therapy-2', 'therapy-1', 'therapy-4', 'therapy-8'],
     workingDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
@@ -341,7 +339,6 @@ export const THERAPISTS = [
     name: 'Rajesh Kumar',
     gender: 'Male',
     experienceYears: 12,
-    specialization: 'Basti', // For backward compatibility
     specializations: ['Basti', 'Virechana', 'Vamana', 'Kati Basti'],
     therapyIds: ['therapy-3', 'therapy-6', 'therapy-7', 'therapy-9'],
     workingDays: ['Mon', 'Wed', 'Fri'],
@@ -354,7 +351,6 @@ export const THERAPISTS = [
     name: 'Kavita Mehta',
     gender: 'Female',
     experienceYears: 5,
-    specialization: 'Nasya', // For backward compatibility
     specializations: ['Nasya', 'Shirodhara', 'Janu Basti', 'Swedana'],
     therapyIds: ['therapy-4', 'therapy-2', 'therapy-10', 'therapy-5'],
     workingDays: ['Tue', 'Thu', 'Sat'],
@@ -367,7 +363,6 @@ export const THERAPISTS = [
     name: 'Sundar Raman',
     gender: 'Male',
     experienceYears: 10,
-    specialization: 'Kati Basti',
     specializations: ['Kati Basti', 'Janu Basti', 'Abhyanga', 'Basti'],
     therapyIds: ['therapy-9', 'therapy-10', 'therapy-1', 'therapy-3'],
     workingDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],

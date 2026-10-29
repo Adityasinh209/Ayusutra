@@ -31,14 +31,18 @@ function delay(ms = 400) {
 /**
  * Validates whether a therapist is qualified for the given therapy.
  */
+function therapistSpecList(therapist) {
+  const s = therapist?.specializations
+  if (Array.isArray(s)) return s
+  if (typeof s === 'string' && s) return s.split(',').map((x) => x.trim()).filter(Boolean)
+  return []
+}
+
 function isTherapistQualified(therapist, therapy) {
   if (!therapist || !therapy) return false
-  if (therapist.specialization === therapy.name) return true
-  if (therapist.specialization === therapy.requiredTherapistSpecialization) return true
-  if (Array.isArray(therapist.specializations)) {
-    if (therapist.specializations.includes(therapy.name)) return true
-    if (therapist.specializations.includes(therapy.requiredTherapistSpecialization)) return true
-  }
+  const specs = therapistSpecList(therapist)
+  if (specs.includes(therapy.name)) return true
+  if (specs.includes(therapy.requiredTherapistSpecialization)) return true
   if (Array.isArray(therapist.therapyIds) && therapist.therapyIds.includes(therapy.id)) {
     return true
   }
@@ -75,6 +79,27 @@ function getLiveTimeStr(d = new Date()) {
   const hours = String(d.getHours()).padStart(2, '0')
   const minutes = String(d.getMinutes()).padStart(2, '0')
   return `${hours}:${minutes}`
+}
+
+const INACTIVE = new Set(['Cancelled', 'Declined'])
+const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+function therapistFits(therapist, date, start, end, existingAppts) {
+  if (therapist.status && therapist.status !== 'Available') return false
+  const day = WEEKDAY[new Date(`${date}T12:00:00`).getDay()]
+  const rules = getAll('therapist_availability').filter((row) => row.therapistId === therapist.id && row.day)
+  if (rules.length) {
+    const rule = rules.find((row) => row.day === day && row.working)
+    if (!rule || start < rule.startTime || end > rule.endTime) return false
+    if (rule.breakStart && rule.breakEnd && start < rule.breakEnd && end > rule.breakStart) return false
+  } else if (Array.isArray(therapist.workingDays) && therapist.workingDays.length && !therapist.workingDays.includes(day)) {
+    return false
+  }
+  if (therapist.maxSessionsPerDay) {
+    const load = existingAppts.filter((appt) => appt.therapistId === therapist.id && appt.date === date && !INACTIVE.has(appt.status)).length
+    if (load >= therapist.maxSessionsPerDay) return false
+  }
+  return true
 }
 
 function addMinutes(timeStr, mins) {
@@ -124,6 +149,9 @@ export async function recommendSlots({ patientId, therapyId, preferredDate = '',
   }
 
   let targetDate = preferredDate
+  if (targetDate && targetDate < todayStr) {
+    return []
+  }
   if (!targetDate) {
     const remainingToday = baseTimes.filter((t) => t > currentTimeStr)
     if (remainingToday.length > 0) {
@@ -154,8 +182,9 @@ export async function recommendSlots({ patientId, therapyId, preferredDate = '',
       if (isTherapistOnLeave(leaves, targetDate)) continue
 
       for (const room of suitableRooms) {
-        const hasConflict = existingAppts.some(
-          (a) => a.date === targetDate && a.status !== 'Cancelled' &&
+        if (!therapistFits(therapist, targetDate, startH, endH, existingAppts)) continue
+      const hasConflict = existingAppts.some(
+          (a) => a.date === targetDate && !INACTIVE.has(a.status) &&
             (a.roomId === room.id || a.therapistId === therapist.id) &&
             ((startH >= a.startTime && startH < a.endTime) || (endH > a.startTime && endH <= a.endTime)),
         )
@@ -192,8 +221,9 @@ export async function recommendSlots({ patientId, therapyId, preferredDate = '',
         if (isTherapistOnLeave(leaves, nextDate)) continue
 
         for (const room of suitableRooms) {
+          if (!therapistFits(therapist, nextDate, startH, endH, existingAppts)) continue
           const hasConflict = existingAppts.some(
-            (a) => a.date === nextDate && a.status !== 'Cancelled' &&
+          (a) => a.date === nextDate && !INACTIVE.has(a.status) &&
               (a.roomId === room.id || a.therapistId === therapist.id) &&
               ((startH >= a.startTime && startH < a.endTime) || (endH > a.startTime && endH <= a.endTime)),
           )
@@ -234,7 +264,7 @@ export async function recommendSlots({ patientId, therapyId, preferredDate = '',
 
       // Double check against existing appointments in memory
       const hasConflict = existingAppts.some(
-        (a) => a.id !== slot.id && a.date === slot.date && a.status !== 'Cancelled' &&
+        (a) => a.id !== slot.id && a.date === slot.date && !INACTIVE.has(a.status) &&
           (a.roomId === slot.roomId || a.therapistId === slot.therapistId) &&
           ((slot.startTime >= a.startTime && slot.startTime < a.endTime) ||
            (slot.endTime > a.startTime && slot.endTime <= a.endTime)),

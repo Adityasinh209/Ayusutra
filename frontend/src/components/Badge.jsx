@@ -4,6 +4,8 @@ const COLORS = {
   Confirmed: 'bg-green-100 text-green-800 ring-green-200',
   Completed: 'bg-emerald-100 text-emerald-800 ring-emerald-200',
   Cancelled: 'bg-red-100 text-red-800 ring-red-200',
+  Declined: 'bg-red-100 text-red-800 ring-red-200',
+  'Pending Confirmation': 'bg-amber-100 text-amber-900 ring-amber-200',
 
   // Generic statuses
   active: 'bg-green-100 text-green-800 ring-green-200',

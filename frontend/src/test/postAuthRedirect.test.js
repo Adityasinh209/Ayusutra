@@ -22,4 +22,9 @@ describe('postAuthRedirect', () => {
     const user = { role: 'therapist' }
     expect(postAuthRedirect(user, { demo: true })).toBe('/dashboard')
   })
+
+  it('sends administrators to the dashboard', () => {
+    const user = { role: 'admin' }
+    expect(postAuthRedirect(user, { demo: true })).toBe('/dashboard')
+  })
 })

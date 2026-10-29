@@ -51,7 +51,7 @@ erDiagram
     therapists {
         VARCHAR id PK
         VARCHAR name
-        VARCHAR specialization
+        TEXT specializations
         BOOLEAN active
     }
 

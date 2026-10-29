@@ -7,11 +7,13 @@ import Badge from '../components/Badge.jsx'
 const NAV_BY_ROLE = {
   admin: [
     { to: '/dashboard', label: 'Dashboard' },
+    { to: '/staff/register', label: 'Register Staff' },
     { to: '/patients', label: 'Patients' },
     { to: '/plans', label: 'Panchakarma Plans' },
     { to: '/appointments', label: 'Therapy Sessions' },
     { to: '/scheduling', label: 'Smart Scheduling' },
     { to: '/masters', label: 'Panchakarma Masters' },
+    { to: '/therapist/profile', label: 'Therapist Profile' },
     { to: '/inventory', label: 'Herbal Inventory' },
     { to: '/billing', label: 'Treatment Billing' },
     { to: '/followups', label: 'Follow-up Tracking' },
@@ -23,9 +25,11 @@ const NAV_BY_ROLE = {
     { to: '/scheduling', label: 'Smart Scheduling' },
     { to: '/appointments', label: 'Therapy Sessions' },
     { to: '/billing', label: 'Treatment Billing' },
+    { to: '/followups', label: 'Follow-up Tracking' },
   ],
   therapist: [
     { to: '/dashboard', label: 'Dashboard' },
+    { to: '/therapist/profile', label: 'Profile Setup' },
     { to: '/patients', label: 'Patients' },
     { to: '/consultation', label: 'Ayurvedic Assessment' },
     { to: '/plans', label: 'Panchakarma Plans' },
@@ -40,6 +44,7 @@ const NAV_BY_ROLE = {
     { to: '/scheduling', label: 'Smart Scheduling' },
     { to: '/appointments', label: 'Therapy Sessions' },
     { to: '/therapist/sessions', label: 'Session Log' },
+    { to: '/therapist/profile', label: 'Therapist Profile' },
     { to: '/followups', label: 'Follow-up Tracking' },
     { to: '/masters', label: 'Panchakarma Masters' },
   ],
@@ -63,8 +68,9 @@ export default function AppLayout({ children }) {
   const navItems = user?.role === 'patient'
     ? [
         { to: '/dashboard', label: 'Dashboard' },
-        { to: `/patients/${user?.patientId || 'patient-1'}`, label: 'My Treatment Plan' },
+        ...(user?.patientId ? [{ to: `/patients/${user.patientId}`, label: 'My Treatment Plan' }] : []),
         { to: '/appointments', label: 'My Therapy Sessions' },
+        { to: '/scheduling', label: 'Book a Session' },
         { to: '/assistant', label: 'AyurSutra Assistant' },
       ]
     : NAV_BY_ROLE[user?.role] ?? NAV_BY_ROLE['therapist']

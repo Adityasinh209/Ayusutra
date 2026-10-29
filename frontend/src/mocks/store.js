@@ -24,9 +24,19 @@ import {
   BILLING_ITEMS,
   CANDIDATE_SLOTS,
 } from './seed.js'
+import {
+  REVIEW_USERS,
+  REVIEW_PATIENTS,
+  REVIEW_PLANS,
+  REVIEW_EMR,
+  REVIEW_APPOINTMENTS,
+  REVIEW_BILLS,
+  REVIEW_FOLLOWUPS,
+  REVIEW_HISTORY,
+} from './seedReview.js'
 
 const NS = 'ayursutra'
-const STORE_VERSION = 'v2'
+const STORE_VERSION = 'v3'
 const VERSION_KEY = `${NS}:storeVersion`
 
 const key = (entity) => `${NS}:${entity}`
@@ -42,21 +52,26 @@ function load(entity) {
 
 function save(entity, data) {
   localStorage.setItem(key(entity), JSON.stringify(data))
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('ayursutra:data', { detail: { entity } }))
+  }
 }
 
 const SEEDS = {
-  users: USERS,
-  patients: PATIENTS,
+  users: [...USERS, ...REVIEW_USERS],
+  patients: [...PATIENTS, ...REVIEW_PATIENTS],
   therapies: THERAPIES,
   therapists: THERAPISTS,
   therapist_availability: THERAPIST_AVAILABILITY,
   therapist_leaves: THERAPIST_LEAVES,
   therapy_rooms: THERAPY_ROOMS,
-  emr_records: EMR_RECORDS,
-  appointments: APPOINTMENTS,
-  panchakarma_plans: PANCHAKARMA_PLANS,
+  emr_records: [...EMR_RECORDS, ...REVIEW_EMR],
+  appointments: [...APPOINTMENTS, ...REVIEW_APPOINTMENTS],
+  panchakarma_plans: [...PANCHAKARMA_PLANS, ...REVIEW_PLANS],
   inventory: INVENTORY,
-  billing: BILLING_ITEMS,
+  billing: [...BILLING_ITEMS, ...REVIEW_BILLS],
+  followups: REVIEW_FOLLOWUPS,
+  previous_treatments: REVIEW_HISTORY,
 }
 
 function init() {

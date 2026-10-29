@@ -15,6 +15,9 @@ const DEMO_ACCOUNTS = [
   { role: 'therapist', label: 'Panchakarma Therapist', email: 'therapist@ayursutra.dev', password: 'Therapist@123' },
   { role: 'receptionist', label: 'Receptionist', email: 'receptionist@ayursutra.dev', password: 'Reception@123' },
   { role: 'patient', label: 'Patient', email: 'patient@ayursutra.dev', password: 'Patient@123' },
+  { role: 'admin', label: 'Administrator', email: 'admin@ayursutra.dev', password: 'Admin@123' },
+  { role: 'patient', label: 'Rahul Patel (completed)', email: 'rahul.patel@ayursutra.dev', password: 'Patient@123' },
+  { role: 'patient', label: 'Priya Shah (in progress)', email: 'priya.shah@ayursutra.dev', password: 'Patient@123' },
 ]
 
 export default function SignInPage() {
@@ -162,12 +165,12 @@ export default function SignInPage() {
         <div className="space-y-2">
           {DEMO_ACCOUNTS.map((account) => (
             <button
-              key={account.role}
+              key={account.email}
               type="button"
               disabled={demoLoading}
               onClick={() => selectDemoAccount(account)}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-sm cursor-pointer border ${
-                pendingDemo?.role === account.role
+                pendingDemo?.email === account.email
                   ? 'border-green-400 bg-green-100'
                   : 'border-green-100 bg-green-50 hover:bg-green-100'
               } disabled:opacity-60`}

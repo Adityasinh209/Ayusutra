@@ -10,6 +10,9 @@ import { getAll, addItem, updateItem, getById } from '../mocks/store.js'
 import { generateId } from '../utils/id.js'
 import { incrementPlanSession } from './plans.js'
 import { api, remoteReady } from './http.js'
+import { syncVisitRecords } from './continuity.js'
+import { notifySessionScheduled } from './notify.js'
+import { isPastSlot } from '../utils/date.js'
 
 function delay(ms = 300) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -45,7 +48,12 @@ export async function getAppointmentsForTherapist(therapistId) {
     .sort((a, b) => new Date(a.date) - new Date(b.date) || a.startTime.localeCompare(b.startTime))
 }
 
-export async function confirmAppointment(slot, { patientId, therapyId, createdBy, treatmentStage, sessionNumber, planId }) {
+export async function confirmAppointment(slot, { patientId, therapyId, createdBy, createdByRole, treatmentStage, sessionNumber, planId }) {
+  if (isPastSlot(slot.date, slot.startTime)) {
+    const err = new Error('Choose a date and time from today onward.')
+    err.status = 400
+    throw err
+  }
   if (remoteReady()) {
     return api('/api/appointments', {
       method: 'POST',
@@ -62,7 +70,7 @@ export async function confirmAppointment(slot, { patientId, therapyId, createdBy
   // Determine existing session count for sequencing if not provided
   const patientAppts = getAll('appointments').filter((a) => a.patientId === patientId)
   const computedSessionNumber = sessionNumber || (patientAppts.length + 1)
-
+  const pending = createdByRole === 'patient'
   const appointment = {
     id: generateId('appt'),
     patientId,
@@ -75,14 +83,17 @@ export async function confirmAppointment(slot, { patientId, therapyId, createdBy
     treatmentStage: treatmentStage || slot.treatmentStage || 'Purva Karma',
     sessionNumber: computedSessionNumber,
     planId: planId || slot.planId || null,
-    status: 'Scheduled',
+    status: pending ? 'Pending Confirmation' : 'Scheduled',
     sessionNotes: '',
     therapistObservations: '',
     doctorRemarks: '',
     createdBy,
     createdAt: new Date().toISOString(),
   }
-  return addItem('appointments', appointment)
+  const saved = addItem('appointments', appointment)
+  if (pending) return saved
+  notifySessionScheduled(saved)
+  return syncVisitRecords(saved)
 }
 
 export async function completeAppointment(id, { sessionNotes = '', therapistObservations = '', doctorRemarks = '' } = {}) {
@@ -116,6 +127,36 @@ export async function completeAppointment(id, { sessionNotes = '', therapistObse
     }
   }
 
+  return updated
+}
+
+export async function acceptAppointment(id) {
+  if (remoteReady()) return api(`/api/appointments/${id}/accept`, { method: 'POST' })
+  await delay()
+  const existing = getById('appointments', id)
+  if (!existing) {
+    const err = new Error('Appointment not found.')
+    err.status = 404
+    throw err
+  }
+  if (existing.status === 'Pending Confirmation') {
+    const scheduled = updateItem('appointments', id, { status: 'Scheduled' })
+    notifySessionScheduled(scheduled)
+    return syncVisitRecords(scheduled)
+  }
+  const updated = updateItem('appointments', id, { status: 'Confirmed' })
+  return syncVisitRecords(updated)
+}
+
+export async function declineAppointment(id) {
+  if (remoteReady()) return api(`/api/appointments/${id}/decline`, { method: 'POST' })
+  await delay()
+  const updated = updateItem('appointments', id, { status: 'Declined' })
+  if (!updated) {
+    const err = new Error('Appointment not found.')
+    err.status = 404
+    throw err
+  }
   return updated
 }
 

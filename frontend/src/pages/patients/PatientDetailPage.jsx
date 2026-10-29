@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth.jsx'
 import { getPatient } from '../../services/patients.js'
 import { getEmrForPatient } from '../../services/emr.js'
 import { getAppointmentsForPatient } from '../../services/appointments.js'
-import { getPlansForPatient, updatePlanStage } from '../../services/plans.js'
+import { getPlansForPatient, pickActivePlan, updatePlanStage } from '../../services/plans.js'
 import { getTherapy } from '../../services/therapies.js'
 import { getTherapist } from '../../services/therapists.js'
 import { getRoom } from '../../services/rooms.js'
@@ -16,6 +16,7 @@ import { PageSpinner } from '../../components/Spinner.jsx'
 import Alert from '../../components/Alert.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 import { formatDate, formatTime, formatDateTime, calculateAge } from '../../utils/date.js'
+import PreviousTreatmentSection from '../../components/patient-history/PreviousTreatmentSection.jsx'
 
 export default function PatientDetailPage() {
   const { id } = useParams()
@@ -109,7 +110,7 @@ export default function PatientDetailPage() {
   if (!patient) return null
 
   const age = calculateAge(patient.dateOfBirth)
-  const activePlan = plans.find((pl) => pl.status === 'In Progress' || pl.status === 'Active') || plans[0]
+  const activePlan = pickActivePlan(plans)
 
   return (
     <div className="max-w-5xl space-y-6">
@@ -124,11 +125,14 @@ export default function PatientDetailPage() {
         action={
           <div className="flex gap-2">
             {(user.role === 'doctor' || user.role === 'admin') && (
-              <Button onClick={() => navigate('/consultation', { state: { patientId: id } })}>
+              <Button onClick={() => {
+                const open = appointments.find((item) => item.status === 'Confirmed') || appointments.find((item) => item.status === 'Scheduled')
+                navigate('/consultation', { state: { patientId: id, appointmentId: open?.id } })
+              }}>
                 + New Assessment
               </Button>
             )}
-            {(user.role === 'receptionist' || user.role === 'admin') && (
+            {(user.role === 'receptionist' || user.role === 'admin' || user.role === 'patient') && (
               <Button variant="secondary" onClick={() => navigate('/scheduling', { state: { patientId: id } })}>
                  Schedule Session
               </Button>
@@ -136,6 +140,8 @@ export default function PatientDetailPage() {
           </div>
         }
       />
+
+      <PreviousTreatmentSection patientId={id} />
 
       {/* 1. Ayurvedic Constitutional Profile & Clinical Baseline */}
       <div className="grid lg:grid-cols-3 gap-6">

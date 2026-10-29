@@ -2,6 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { PageSpinner } from '../components/Spinner.jsx'
 import { patientNeedsIntake } from '../services/patients.js'
+import { homePathForUser } from '../auth/postAuthRedirect.js'
 
 export default function ProtectedRoute({ children, roles }) {
   const { user, isLoaded } = useAuth()
@@ -21,7 +22,7 @@ export default function ProtectedRoute({ children, roles }) {
   }
 
   if (roles && !roles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to={homePathForUser(user)} replace />
   }
 
   return children

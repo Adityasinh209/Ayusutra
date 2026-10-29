@@ -29,6 +29,13 @@ class Settings(BaseSettings):
     clerk_secret_key: str = ""
     clerk_frontend_api: str = ""
     allow_test_tokens: bool = False
+    upload_dir: str = "uploads"
+    dummy_otp: str = "123456"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    mail_from: str = "AyurSutra <noreply@ayursutra.dev>"
 
     @field_validator("database_url", mode="before")
     @classmethod

@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth.jsx'
-import { listAppointments, getAppointmentsForPatient, cancelAppointment } from '../../services/appointments.js'
-import { getAll } from '../../mocks/store.js'
+import { listAppointments, getAppointmentsForPatient, cancelAppointment, acceptAppointment, declineAppointment } from '../../services/appointments.js'
+import { listPatients, getPatient } from '../../services/patients.js'
+import { listTherapies } from '../../services/therapies.js'
+import { listTherapists } from '../../services/therapists.js'
+import { listRooms } from '../../services/rooms.js'
 import PageHeader from '../../components/PageHeader.jsx'
 import Table from '../../components/Table.jsx'
 import Badge from '../../components/Badge.jsx'
@@ -22,15 +25,31 @@ export default function AppointmentsPage() {
   const [cancelling, setCancelling] = useState(false)
   const [statusFilter, setStatusFilter] = useState('all')
   const [stageFilter, setStageFilter] = useState('all')
-
-  // Lookups
-  const patients = Object.fromEntries(getAll('patients').map((p) => [p.id, p]))
-  const therapies = Object.fromEntries(getAll('therapies').map((t) => [t.id, t]))
-  const therapists = Object.fromEntries(getAll('therapists').map((t) => [t.id, t]))
-  const rooms = Object.fromEntries(getAll('therapy_rooms').map((r) => [r.id, r]))
+  const [patients, setPatients] = useState({})
+  const [therapies, setTherapies] = useState({})
+  const [therapists, setTherapists] = useState({})
+  const [rooms, setRooms] = useState({})
 
   async function load() {
     try {
+      const catalog = user?.role === 'patient'
+        ? Promise.all([
+            user.patientId ? getPatient(user.patientId).then((patient) => [patient]).catch(() => []) : Promise.resolve([]),
+            listTherapies().catch(() => []),
+            listTherapists().catch(() => []),
+            listRooms().catch(() => []),
+          ])
+        : Promise.all([
+            listPatients().catch(() => []),
+            listTherapies().catch(() => []),
+            listTherapists().catch(() => []),
+            listRooms().catch(() => []),
+          ])
+      const [patientRows, therapyRows, therapistRows, roomRows] = await catalog
+      setPatients(Object.fromEntries(patientRows.map((row) => [row.id, row])))
+      setTherapies(Object.fromEntries(therapyRows.map((row) => [row.id, row])))
+      setTherapists(Object.fromEntries(therapistRows.map((row) => [row.id, row])))
+      setRooms(Object.fromEntries(roomRows.map((row) => [row.id, row])))
       let data = []
       if (user?.role === 'patient' && user?.patientId) {
         data = await getAppointmentsForPatient(user.patientId)
@@ -168,20 +187,56 @@ export default function AppointmentsPage() {
           {
             key: 'actions',
             label: '',
-            render: (r) =>
-              r.status !== 'Cancelled' && r.status !== 'Completed' ? (
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  className="text-red-500 hover:text-red-700"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setCancelTarget(r)
-                  }}
-                >
-                  Cancel
-                </Button>
-              ) : null,
+            render: (r) => (
+              <div className="flex items-center gap-1.5">
+                {(user?.role === 'receptionist' || user?.role === 'admin') && r.status === 'Pending Confirmation' && (
+                  <>
+                    <Button
+                      size="xs"
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        try {
+                          const updated = await acceptAppointment(r.id)
+                          setAppointments((prev) => prev.map((row) => (row.id === r.id ? updated : row)))
+                        } catch (err) {
+                          setError(err.message)
+                        }
+                      }}
+                    >
+                      Confirm
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="secondary"
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        try {
+                          const updated = await declineAppointment(r.id)
+                          setAppointments((prev) => prev.map((row) => (row.id === r.id ? updated : row)))
+                        } catch (err) {
+                          setError(err.message)
+                        }
+                      }}
+                    >
+                      Decline
+                    </Button>
+                  </>
+                )}
+                {r.status !== 'Cancelled' && r.status !== 'Completed' && r.status !== 'Declined' ? (
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    className="text-red-500 hover:text-red-700"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setCancelTarget(r)
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                ) : null}
+              </div>
+            ),
           },
         ]
       : []),
@@ -206,7 +261,7 @@ export default function AppointmentsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-stone-50 p-3 rounded-xl border border-stone-200">
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-xs font-bold text-stone-500 mr-1">Status:</span>
-          {['all', 'Scheduled', 'Confirmed', 'Completed', 'Cancelled'].map((s) => (
+          {['all', 'Pending Confirmation', 'Scheduled', 'Confirmed', 'Completed', 'Cancelled'].map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}

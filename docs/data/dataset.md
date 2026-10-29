@@ -98,7 +98,7 @@ The following data attributes are accessed by the Phase 2 scheduling engine:
 | Data Point | Source Table | Purpose |
 |---|---|---|
 | Therapy duration | therapies.default_duration_mins | Calculate end time of slot |
-| Therapist specialisation | therapists.specialization | Match qualified therapist |
+| Therapist specialisation | therapists.specializations | Match qualified therapist |
 | Working days | therapist_availability.day_of_week | Filter by day |
 | Working hours | therapist_availability.start_time / end_time | Filter by time window |
 | Leave dates | therapist_leaves.start_date / end_date | Exclude unavailable therapists |

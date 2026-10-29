@@ -10,6 +10,7 @@
 import { getAll, getById, addItem, updateItem } from '../mocks/store.js'
 import { generateId } from '../utils/id.js'
 import { api, remoteReady } from './http.js'
+import { canonicalPhone, consumeOtp } from './otp.js'
 
 function delay(ms = 350) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -38,18 +39,23 @@ export async function getPatient(id) {
 export async function createPatient(data, createdByUserId) {
   if (remoteReady()) return api('/api/patients', { method: 'POST', body: data })
   await delay()
+  const phone = canonicalPhone(data.phone)
   const all = getAll('patients')
   const duplicate = all.find(
-    (p) => p.phone === data.phone || (data.email && p.email === data.email),
+    (p) => p.phone === phone || (data.email && p.email === data.email),
   )
   if (duplicate) {
     const err = new Error('A patient with this phone number or email already exists.')
     err.status = 409
     throw err
   }
+  consumeOtp(data.otpVerificationToken, phone, 'patient_register')
+  const { otpVerificationToken: _token, ...fields } = data
   const patient = {
     id: generateId('patient'),
-    ...data,
+    ...fields,
+    phone,
+    phoneVerified: true,
     registeredAt: new Date().toISOString(),
     registeredBy: createdByUserId,
   }
@@ -95,6 +101,7 @@ export async function submitPatientIntake(data, user) {
     throw err
   }
 
+  const phone = canonicalPhone(data.phone)
   const existing = findPatientForUser(user)
   const all = getAll('patients')
   const duplicate = all.find(
@@ -107,10 +114,11 @@ export async function submitPatientIntake(data, user) {
     err.status = 409
     throw err
   }
+  consumeOtp(data.otpVerificationToken, phone, 'patient_intake')
 
   const payload = {
     fullName: data.fullName.trim(),
-    phone: data.phone.trim(),
+    phone,
     address: data.address.trim(),
     dateOfBirth: data.dateOfBirth,
     gender: data.gender,

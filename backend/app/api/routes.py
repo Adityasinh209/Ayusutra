@@ -13,7 +13,10 @@ from app.models.entities import (
     Appointment, AuditEvent, BillingRecord, EmrRecord, FollowUp, InventoryItem, Patient,
     PanchakarmaPlan, Receptionist, Therapist, Therapy, TherapyRoom, User,
 )
-from app.services.booking import book, cancel, complete
+from app.services.booking import accept, book, cancel, complete, decline
+from app.services.continuity import active_plan_for_patient, apply_plan_fields, ensure_bill, ensure_followup, open_appointment
+from app.services.otp import consume_verification
+from app.services.phones import assert_phone_available
 from app.services.scheduling import recommend_slots
 
 router = APIRouter()
@@ -78,6 +81,7 @@ class IntakeBody(BaseModel):
     chiefComplaint: str = ""
     medicalHistory: str = ""
     allergies: str = ""
+    otpVerificationToken: str = ""
 
 
 @router.get("/api/patients")
@@ -101,11 +105,11 @@ def get_patient(patient_id: str, user: User = Depends(get_current_user), db: Ses
 
 @router.post("/api/patients", status_code=201)
 def create_patient(body: IntakeBody, user: User = Depends(require_roles(*STAFF)), db: Session = Depends(get_db)):
-    if db.query(Patient).filter(Patient.phone == body.phone).first():
-        raise HTTPException(409, "A patient with this phone number or email already exists.")
+    phone = assert_phone_available(db, body.phone)
+    consume_verification(db, body.otpVerificationToken, phone, "patient_register")
     patient = Patient(
         id=f"patient-{int(datetime.now().timestamp()*1000)}",
-        full_name=body.fullName.strip(), phone=body.phone.strip(), address=body.address.strip(),
+        full_name=body.fullName.strip(), phone=phone, address=body.address.strip(), phone_verified=1,
         date_of_birth=body.dateOfBirth, gender=body.gender, email=body.email.strip(),
         emergency_contact=body.emergencyContact, chief_complaint=body.chiefComplaint,
         medical_history=body.medicalHistory, allergies=body.allergies, registered_by=user.id,
@@ -122,15 +126,20 @@ def intake(body: IntakeBody, user: User = Depends(get_current_user), db: Session
     if user.role != "patient":
         raise HTTPException(403, "Not allowed.")
     existing = db.get(Patient, user.patient_id) if user.patient_id else None
-    dup = db.query(Patient).filter(Patient.phone == body.phone).first()
-    if dup and (existing is None or dup.id != existing.id):
-        raise HTTPException(409, "A patient with this phone number or email already exists.")
+    phone = assert_phone_available(
+        db, body.phone,
+        ignore_patient_id=existing.id if existing else None,
+        ignore_user_id=user.id,
+    )
+    consume_verification(db, body.otpVerificationToken, phone, "patient_intake")
     if existing is None:
-        existing = Patient(id=f"patient-{user.id}", phone=body.phone, registered_by=user.id, user_id=user.id, clerk_id=user.clerk_id)
+        existing = Patient(id=f"patient-{user.id}"[:64], phone=phone, registered_by=user.id, user_id=user.id, clerk_id=user.clerk_id)
         db.add(existing)
         user.patient_id = existing.id
     existing.full_name = body.fullName.strip()
-    existing.phone = body.phone.strip()
+    existing.phone = phone
+    existing.phone_verified = 1
+    user.phone = phone
     existing.address = body.address.strip()
     existing.date_of_birth = body.dateOfBirth
     existing.gender = body.gender
@@ -161,6 +170,7 @@ class EmrBody(BaseModel):
     dietaryInstructions: str = ""
     treatmentStage: str = "Purva Karma"
     followUpDate: str = ""
+    appointmentId: str | None = None
 
 
 @router.get("/api/patients/{patient_id}/emr")
@@ -184,23 +194,57 @@ def create_emr(body: EmrBody, user: User = Depends(require_roles(*CLINICAL)), db
         medicines=body.medicines, doctor_notes=body.doctorNotes,
         dietary_instructions=body.dietaryInstructions,
         treatment_stage=body.treatmentStage, follow_up_date=body.followUpDate,
+        appointment_id=body.appointmentId,
     )
+    linked = open_appointment(db, body.patientId, body.appointmentId)
+    if linked:
+        rec.appointment_id = linked.id
     db.add(rec)
     db.flush()
-    if body.therapyId and body.numberOfSessions:
-        therapy = db.get(Therapy, body.therapyId)
-        plan = PanchakarmaPlan(
-            id=f"plan-{rec.id}", patient_id=body.patientId, doctor_id=user.id, emr_id=rec.id,
-            procedure_name=therapy.name if therapy else "Panchakarma Protocol",
-            primary_panchakarma=therapy.name if therapy else "Purva Karma",
+    plan = None
+    if body.therapyId or body.treatmentPlan or body.numberOfSessions:
+        therapy = db.get(Therapy, body.therapyId) if body.therapyId else None
+        fields = dict(
+            doctor_id=user.id,
+            emr_id=rec.id,
+            procedure_name=(therapy.name if therapy else None) or body.treatmentPlan or "Panchakarma Protocol",
+            primary_panchakarma=(therapy.name if therapy else None) or "Purva Karma",
             treatment_stage=body.treatmentStage or "Purva Karma",
-            total_sessions=body.numberOfSessions, start_date=datetime.now(timezone.utc).date().isoformat(),
-            end_date=body.followUpDate, doctor_instructions=body.doctorNotes or body.treatmentPlan,
+            total_sessions=body.numberOfSessions or 7,
+            completed_sessions=0,
+            start_date=datetime.now(timezone.utc).date().isoformat(),
+            end_date=body.followUpDate,
+            doctor_instructions=body.doctorNotes or body.treatmentPlan,
             diet_plan=body.dietaryInstructions or "Follow Pathya-Apathya as prescribed.",
             follow_up_date=body.followUpDate,
         )
-        db.add(plan)
+        plan = active_plan_for_patient(db, body.patientId)
+        if plan:
+            apply_plan_fields(plan, **fields)
+        else:
+            plan = PanchakarmaPlan(id=f"plan-{rec.id}", patient_id=body.patientId, **fields)
+            db.add(plan)
+        if linked:
+            plan.assigned_therapist_id = linked.therapist_id
+            plan.assigned_room_id = linked.room_id
+            linked.plan_id = plan.id
         rec.plan_id = plan.id
+        ensure_bill(
+            db,
+            patient_id=body.patientId,
+            appointment=linked,
+            plan=plan,
+            package_type=plan.procedure_name,
+            sessions=plan.total_sessions,
+        )
+    if body.followUpDate:
+        ensure_followup(
+            db,
+            patient_id=body.patientId,
+            followup_date=body.followUpDate,
+            plan_id=plan.id if plan else None,
+            therapist_id=linked.therapist_id if linked else None,
+        )
     _audit(db, user.id, "create", "emr", rec.id)
     db.commit()
     db.refresh(rec)
@@ -211,7 +255,7 @@ def _emr(r: EmrRecord) -> dict:
     data = row(r, [
         "id", "patient_id", "doctor_id", "plan_id", "symptoms", "diagnosis", "dosha_assessment",
         "treatment_plan", "therapy_id", "number_of_sessions", "medicines", "doctor_notes",
-        "dietary_instructions", "treatment_stage", "follow_up_date", "created_at",
+        "dietary_instructions", "treatment_stage", "follow_up_date", "appointment_id", "created_at",
     ])
     try:
         data["ashtavidhaPariksha"] = json.loads(r.ashtavidha_pariksha or "{}")
@@ -263,6 +307,8 @@ class PlanBody(BaseModel):
     followUpDate: str = ""
     doctorInstructions: str = ""
     dietPlan: str = ""
+    assignedTherapistId: str | None = None
+    assignedRoomId: str | None = None
 
 
 class StageBody(BaseModel):
@@ -279,16 +325,28 @@ def list_plans(user: User = Depends(get_current_user), db: Session = Depends(get
 
 @router.post("/api/plans", status_code=201)
 def create_plan(body: PlanBody, user: User = Depends(require_roles(*CLINICAL)), db: Session = Depends(get_db)):
-    plan = PanchakarmaPlan(
-        id=f"plan-{int(datetime.now().timestamp()*1000)}",
-        patient_id=body.patientId, doctor_id=user.id, procedure_name=body.procedureName,
-        primary_panchakarma=body.primaryPanchakarma, treatment_stage=body.treatmentStage,
-        total_sessions=body.totalSessions, follow_up_date=body.followUpDate,
-        doctor_instructions=body.doctorInstructions, diet_plan=body.dietPlan,
+    fields = dict(
+        doctor_id=user.id,
+        procedure_name=body.procedureName,
+        primary_panchakarma=body.primaryPanchakarma,
+        treatment_stage=body.treatmentStage,
+        total_sessions=body.totalSessions,
+        completed_sessions=0,
+        follow_up_date=body.followUpDate,
+        doctor_instructions=body.doctorInstructions,
+        diet_plan=body.dietPlan,
+        assigned_therapist_id=body.assignedTherapistId or None,
+        assigned_room_id=body.assignedRoomId or None,
         start_date=datetime.now(timezone.utc).date().isoformat(),
     )
-    db.add(plan)
-    _audit(db, user.id, "create", "plan", plan.id)
+    plan = active_plan_for_patient(db, body.patientId)
+    if plan:
+        apply_plan_fields(plan, **fields)
+        _audit(db, user.id, "update", "plan", plan.id)
+    else:
+        plan = PanchakarmaPlan(id=f"plan-{int(datetime.now().timestamp()*1000)}", patient_id=body.patientId, **fields)
+        db.add(plan)
+        _audit(db, user.id, "create", "plan", plan.id)
     db.commit()
     db.refresh(plan)
     return row(plan, PLAN_FIELDS)
@@ -316,7 +374,12 @@ class RecommendBody(BaseModel):
 
 
 @router.post("/api/scheduling/recommend")
-def recommend(body: RecommendBody, user: User = Depends(require_roles(*STAFF)), db: Session = Depends(get_db)):
+def recommend(body: RecommendBody, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if user.role == "patient":
+        if user.patient_id != body.patientId:
+            raise HTTPException(403, "Not allowed.")
+    elif user.role not in STAFF:
+        raise HTTPException(403, "Not allowed.")
     return recommend_slots(db, body.patientId, body.therapyId, body.preferredDate, body.preferredTime)
 
 
@@ -350,12 +413,18 @@ def list_appts(user: User = Depends(get_current_user), db: Session = Depends(get
 
 
 @router.post("/api/appointments", status_code=201)
-def create_appt(body: BookBody, user: User = Depends(require_roles(*STAFF)), db: Session = Depends(get_db)):
+def create_appt(body: BookBody, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if user.role == "patient":
+        if user.patient_id != body.patientId:
+            raise HTTPException(403, "Not allowed.")
+    elif user.role not in STAFF:
+        raise HTTPException(403, "Not allowed.")
     appt = book(
         db, actor_id=user.id, patient_id=body.patientId, therapy_id=body.therapyId,
         therapist_id=body.therapistId, room_id=body.roomId, date=body.date,
         start_time=body.startTime, end_time=body.endTime, treatment_stage=body.treatmentStage,
         plan_id=body.planId, session_number=body.sessionNumber,
+        pending=user.role == "patient",
     )
     return row(appt, APPT_FIELDS)
 
@@ -369,11 +438,48 @@ def complete_appt(appt_id: str, body: CompleteBody, user: User = Depends(require
     return row(appt, APPT_FIELDS)
 
 
-@router.post("/api/appointments/{appt_id}/cancel")
-def cancel_appt(appt_id: str, user: User = Depends(require_roles(*STAFF)), db: Session = Depends(get_db)):
+def _can_manage_appt(user: User, appt: Appointment) -> bool:
+    if user.role in ("admin", "doctor"):
+        return True
+    if user.role == "therapist" and user.therapist_id == appt.therapist_id:
+        return True
+    if user.role == "receptionist":
+        return True
+    return user.role == "patient" and user.patient_id == appt.patient_id
+
+
+@router.post("/api/appointments/{appt_id}/accept")
+def accept_appt(appt_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     appt = db.get(Appointment, appt_id)
     if appt is None:
         raise HTTPException(404, "Appointment not found.")
+    reception = user.role in ("receptionist", "admin")
+    if user.role not in ("therapist", "admin", "doctor", "receptionist") or (
+        user.role == "therapist" and user.therapist_id != appt.therapist_id
+    ):
+        raise HTTPException(403, "Not allowed.")
+    return row(accept(db, appt, user.id, as_receptionist=reception), APPT_FIELDS)
+
+
+@router.post("/api/appointments/{appt_id}/decline")
+def decline_appt(appt_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    appt = db.get(Appointment, appt_id)
+    if appt is None:
+        raise HTTPException(404, "Appointment not found.")
+    if user.role not in ("therapist", "admin", "doctor", "receptionist") or (
+        user.role == "therapist" and user.therapist_id != appt.therapist_id
+    ):
+        raise HTTPException(403, "Not allowed.")
+    return row(decline(db, appt, user.id), APPT_FIELDS)
+
+
+@router.post("/api/appointments/{appt_id}/cancel")
+def cancel_appt(appt_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    appt = db.get(Appointment, appt_id)
+    if appt is None:
+        raise HTTPException(404, "Appointment not found.")
+    if not _can_manage_appt(user, appt):
+        raise HTTPException(403, "Not allowed.")
     appt = cancel(db, appt, user.id)
     return row(appt, APPT_FIELDS)
 
@@ -387,7 +493,7 @@ def therapies(user: User = Depends(get_current_user), db: Session = Depends(get_
 @router.get("/api/therapists")
 def therapists(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return [row(t, [
-        "id", "user_id", "name", "specialization", "qualification", "experience",
+        "id", "user_id", "name", "specializations", "qualification", "experience",
         "shift_start", "shift_end", "availability_status", "active",
     ]) for t in db.query(Therapist).filter(Therapist.active == 1).all()]
 
@@ -424,8 +530,13 @@ class PaymentBody(BaseModel):
 
 
 @router.get("/api/billing")
-def list_bills(user: User = Depends(require_roles(*STAFF)), db: Session = Depends(get_db)):
-    rows = db.query(BillingRecord).order_by(BillingRecord.bill_date.desc()).all()
+def list_bills(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    q = db.query(BillingRecord)
+    if user.role == "patient":
+        q = q.filter(BillingRecord.patient_id == user.patient_id)
+    elif user.role not in STAFF:
+        raise HTTPException(403, "Not allowed.")
+    rows = q.order_by(BillingRecord.bill_date.desc()).all()
     return [_bill(b) for b in rows]
 
 

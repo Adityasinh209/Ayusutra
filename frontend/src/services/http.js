@@ -14,6 +14,21 @@ export function remoteReady() {
   return Boolean(base) && Boolean(token)
 }
 
+export async function apiUpload(path, formData) {
+  const res = await fetch(`${base}${path}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const err = new Error(typeof data.detail === 'string' ? data.detail : 'Upload failed.')
+    err.status = res.status
+    throw err
+  }
+  return data
+}
+
 export async function api(path, { method = 'GET', body } = {}) {
   const res = await fetch(`${base}${path}`, {
     method,

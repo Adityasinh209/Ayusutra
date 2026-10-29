@@ -87,6 +87,7 @@ export default function PlansPage() {
     e.preventDefault()
     if (!newPlan.patientId || !newPlan.procedureName) return
     setCreating(true)
+    const patientId = newPlan.patientId
     try {
       await createPlan(
         {
@@ -109,6 +110,7 @@ export default function PlansPage() {
         followUpDate: '',
       })
       await loadData()
+      navigate(`/patients/${patientId}`)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -132,7 +134,7 @@ export default function PlansPage() {
         title="Panchakarma Treatment Plans"
         subtitle="Manage multi-stage therapeutic progressions across Purva, Pradhana, and Paschat Karma"
         action={
-          (user.role === 'doctor' || user.role === 'admin') && (
+          (user.role === 'doctor' || user.role === 'therapist' || user.role === 'admin') && (
             <Button onClick={() => setModalOpen(true)}>
               + Create Treatment Plan
             </Button>
@@ -389,7 +391,7 @@ export default function PlansPage() {
                 <option value="">— Choose Therapist —</option>
                 {therapists.map((th) => (
                   <option key={th.id} value={th.id}>
-                    {th.name} ({th.specialization})
+                    {th.name} ({Array.isArray(th.specializations) ? th.specializations.join(', ') : th.specializations || '—'})
                   </option>
                 ))}
               </Select>

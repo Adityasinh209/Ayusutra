@@ -2,12 +2,15 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router
+from app.api.workflow import router as workflow_router
 from app.core.config import settings
 from app.db.schema_sync import sync_schema
 from app.db.seed import seed
 from app.db.session import SessionLocal, engine
+from app.services.uploads import upload_root
 from app import models  # noqa: F401
 
 
@@ -37,3 +40,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(router)
+app.include_router(workflow_router)
+app.mount("/uploads", StaticFiles(directory=str(upload_root())), name="uploads")

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth.jsx'
-import { listPatients } from '../../services/patients.js'
+import { listPatients, getPatient } from '../../services/patients.js'
 import { listTherapies } from '../../services/therapies.js'
 import { listPlans } from '../../services/plans.js'
 import { recommendSlots } from '../../services/scheduling.js'
@@ -14,7 +14,7 @@ import Alert from '../../components/Alert.jsx'
 import Modal from '../../components/Modal.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 import { required, validate } from '../../utils/validation.js'
-import { formatDate, formatTime } from '../../utils/date.js'
+import { currentTimeHHMM, formatDate, formatTime, isPastDate, todayISODate } from '../../utils/date.js'
 
 export default function SchedulingPage() {
   const { user } = useAuth()
@@ -26,7 +26,7 @@ export default function SchedulingPage() {
   const [plans, setPlans] = useState([])
 
   const [form, setForm] = useState({
-    patientId: location.state?.patientId ?? '',
+    patientId: location.state?.patientId ?? (user?.role === 'patient' ? user.patientId || '' : ''),
     therapyId: '',
     treatmentStage: 'Purva Karma',
     sessionNumber: 1,
@@ -43,14 +43,45 @@ export default function SchedulingPage() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [successMsg, setSuccessMsg] = useState(null)
+  const today = todayISODate()
+  const nowTime = currentTimeHHMM()
+  const selectedDay = form.preferredDate || today
+  const isToday = selectedDay === today
+  const morningClosed = isToday && nowTime >= '12:00'
+  const afternoonClosed = isToday && nowTime >= '16:00'
 
   useEffect(() => {
-    Promise.all([listPatients(), listTherapies(), listPlans()]).then(([p, t, pl]) => {
+    if (user?.role === 'patient' && user.patientId) {
+      setForm((prev) => ({ ...prev, patientId: user.patientId }))
+    }
+  }, [user?.role, user?.patientId])
+
+  useEffect(() => {
+    setForm((prev) => {
+      let next = prev
+      if (prev.preferredDate && isPastDate(prev.preferredDate)) {
+        next = { ...next, preferredDate: today }
+      }
+      if (morningClosed && prev.preferredTime === 'morning') {
+        next = { ...next, preferredTime: '' }
+      }
+      if (afternoonClosed && prev.preferredTime === 'afternoon') {
+        next = { ...next, preferredTime: '' }
+      }
+      return next
+    })
+  }, [afternoonClosed, morningClosed, today])
+
+  useEffect(() => {
+    const patientsPromise = user?.role === 'patient' && user.patientId
+      ? getPatient(user.patientId).then((patient) => [patient]).catch(() => [])
+      : listPatients().catch(() => [])
+    Promise.all([patientsPromise, listTherapies(), listPlans().catch(() => [])]).then(([p, t, pl]) => {
       setPatients(p)
       setTherapies(t)
       setPlans(pl)
     })
-  }, [])
+  }, [user?.role, user?.patientId])
 
   // Auto-fill stage & therapy from patient's active plan if present
   useEffect(() => {
@@ -87,6 +118,10 @@ export default function SchedulingPage() {
       therapyId: required(form.therapyId, 'Therapy procedure'),
     })
     if (hasError) { setErrors(errs); return }
+    if (form.preferredDate && isPastDate(form.preferredDate)) {
+      setErrors({ preferredDate: 'Choose today or a future date.' })
+      return
+    }
 
     setSearching(true)
     setSearchError(null)
@@ -120,9 +155,14 @@ export default function SchedulingPage() {
         sessionNumber: Number(form.sessionNumber) || 1,
         planId: activePlan?.id || null,
         createdBy: user.id,
+        createdByRole: user.role,
       })
       setConfirmOpen(false)
-      setSuccessMsg('Therapy session confirmed and reserved successfully.')
+      setSuccessMsg(
+        user.role === 'patient'
+          ? 'Request sent to reception. Your session is scheduled only after the receptionist confirms it.'
+          : 'Therapy session scheduled. The patient and therapist were notified by email.',
+      )
       setSlots(null)
       setSelectedSlot(null)
       setForm({
@@ -179,6 +219,7 @@ export default function SchedulingPage() {
                 value={form.patientId}
                 onChange={(e) => set('patientId', e.target.value)}
                 error={errors.patientId}
+                disabled={user?.role === 'patient'}
               >
                 <option value="">— Select Patient —</option>
                 {patients.map((p) => (
@@ -225,9 +266,10 @@ export default function SchedulingPage() {
               />
             </FormField>
 
-            <FormField label="Target Date" hint="Leave blank for earliest available clinical slot">
+            <FormField label="Target Date" hint="Today or any future date. Past dates are closed." error={errors.preferredDate}>
               <Input
                 type="date"
+                min={today}
                 value={form.preferredDate}
                 onChange={(e) => set('preferredDate', e.target.value)}
               />
@@ -236,8 +278,12 @@ export default function SchedulingPage() {
             <FormField label="Time Window Preference" hint="Ayurvedic diurnal dosha window">
               <Select value={form.preferredTime} onChange={(e) => set('preferredTime', e.target.value)}>
                 <option value="">Any Available Time</option>
-                <option value="morning">Morning (08:00 – 12:00) — Optimal for Kapha/Vata</option>
-                <option value="afternoon">Afternoon (12:00 – 16:00)</option>
+                <option value="morning" disabled={morningClosed}>
+                  Morning (08:00 – 12:00){morningClosed ? ' — closed for today' : ' — Optimal for Kapha/Vata'}
+                </option>
+                <option value="afternoon" disabled={afternoonClosed}>
+                  Afternoon (12:00 – 16:00){afternoonClosed ? ' — closed for today' : ''}
+                </option>
               </Select>
             </FormField>
           </div>
@@ -291,7 +337,7 @@ export default function SchedulingPage() {
                     <div>
                       <span className="text-stone-400 block">Certified Therapist</span>
                       <span className="font-bold text-stone-800">{recommended.therapist?.name}</span>
-                      <span className="text-[9.5px] text-stone-500 block">Spec: {recommended.therapist?.specialization}</span>
+                      <span className="text-[9.5px] text-stone-500 block">Spec: {recommended.therapist?.specializations}</span>
                     </div>
                     <div>
                       <span className="text-stone-400 block">Assigned Chamber</span>
@@ -387,21 +433,23 @@ export default function SchedulingPage() {
         <Modal
           open={confirmOpen}
           onClose={() => !confirming && setConfirmOpen(false)}
-          title="Confirm Panchakarma Session Reservation"
+          title={user?.role === 'patient' ? 'Send Session Request to Reception' : 'Confirm Panchakarma Session Reservation'}
           footer={
             <>
               <Button variant="secondary" onClick={() => setConfirmOpen(false)} disabled={confirming}>
                 Cancel
               </Button>
               <Button onClick={handleConfirm} loading={confirming}>
-                Confirm &amp; Notify Care Team
+                {user?.role === 'patient' ? 'Send Request to Reception' : 'Confirm & Notify Care Team'}
               </Button>
             </>
           }
         >
           <div className="space-y-3 text-xs">
             <p className="text-stone-600">
-              Verify the multi-resource allocation details before locking the schedule:
+              {user?.role === 'patient'
+                ? 'Reception will confirm this slot. The session is scheduled only after they approve it, then you and the therapist receive email.'
+                : 'Verify the multi-resource allocation details before locking the schedule. The patient and therapist will be emailed.'}
             </p>
             <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 space-y-2">
               <div className="flex justify-between">

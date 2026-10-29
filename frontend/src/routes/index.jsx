@@ -17,10 +17,12 @@ const PlansPage = lazy(() => import('../pages/plans/PlansPage.jsx'))
 const SchedulingPage = lazy(() => import('../pages/scheduling/SchedulingPage.jsx'))
 const AppointmentsPage = lazy(() => import('../pages/appointments/AppointmentsPage.jsx'))
 const TherapistSessionsPage = lazy(() => import('../pages/therapist/TherapistSessionsPage.jsx'))
+const TherapistProfileSetupPage = lazy(() => import('../pages/therapist/TherapistProfileSetupPage.jsx'))
 const MastersPage = lazy(() => import('../pages/masters/MastersPage.jsx'))
 const InventoryPage = lazy(() => import('../pages/inventory/InventoryPage.jsx'))
 const BillingPage = lazy(() => import('../pages/billing/BillingPage.jsx'))
 const FollowupsPage = lazy(() => import('../pages/followups/FollowupsPage.jsx'))
+const StaffRegistrationPage = lazy(() => import('../pages/staff/StaffRegistrationPage.jsx'))
 const AssistantPage = lazy(() => import('../pages/assistant/AssistantPage.jsx'))
 
 function LegacyLoginRedirect() {
@@ -84,7 +86,7 @@ export default function AppRoutes() {
         {/* Smart Scheduling */}
         <Route
           path="/scheduling"
-          element={<AuthedRoute roles={['receptionist', 'admin', 'doctor']}><SchedulingPage /></AuthedRoute>}
+          element={<AuthedRoute roles={['receptionist', 'admin', 'doctor', 'patient']}><SchedulingPage /></AuthedRoute>}
         />
 
         {/* Therapy Sessions & Execution */}
@@ -92,6 +94,10 @@ export default function AppRoutes() {
         <Route
           path="/therapist/sessions"
           element={<AuthedRoute roles={['therapist', 'admin', 'doctor']}><TherapistSessionsPage /></AuthedRoute>}
+        />
+        <Route
+          path="/therapist/profile"
+          element={<AuthedRoute roles={['therapist', 'admin', 'doctor']}><TherapistProfileSetupPage /></AuthedRoute>}
         />
 
         {/* Clinical Masters, Inventory & Billing */}
@@ -109,7 +115,11 @@ export default function AppRoutes() {
         />
         <Route
           path="/followups"
-          element={<AuthedRoute roles={['doctor', 'therapist', 'admin']}><FollowupsPage /></AuthedRoute>}
+          element={<AuthedRoute roles={['doctor', 'therapist', 'admin', 'receptionist']}><FollowupsPage /></AuthedRoute>}
+        />
+        <Route
+          path="/staff/register"
+          element={<AuthedRoute roles={['admin']}><StaffRegistrationPage /></AuthedRoute>}
         />
         <Route
           path="/assistant"

@@ -48,6 +48,7 @@ class Patient(Base):
     clerk_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     registered_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
     registered_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    phone_verified: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class Therapy(Base):
@@ -68,7 +69,6 @@ class Therapist(Base):
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=True)
     name: Mapped[str] = mapped_column(String(255))
-    specialization: Mapped[str] = mapped_column(String(128), default="")
     specializations: Mapped[str] = mapped_column(Text, default="")  # comma-separated
     therapy_ids: Mapped[str] = mapped_column(Text, default="")
     qualification: Mapped[str] = mapped_column(String(100), default="")
@@ -77,6 +77,41 @@ class Therapist(Base):
     shift_end: Mapped[str] = mapped_column(String(8), default="17:00")
     availability_status: Mapped[str] = mapped_column(String(32), default="Available")
     active: Mapped[int] = mapped_column(Integer, default=1)
+    gender: Mapped[str] = mapped_column(String(16), default="")
+    phone: Mapped[str] = mapped_column(String(16), default="")
+    email: Mapped[str] = mapped_column(String(255), default="")
+    registration_number: Mapped[str] = mapped_column(String(64), default="")
+    languages: Mapped[str] = mapped_column(Text, default="")
+    about_me: Mapped[str] = mapped_column(Text, default="")
+    photo_name: Mapped[str] = mapped_column(String(255), default="")
+    max_patients_per_day: Mapped[int] = mapped_column(Integer, default=10)
+    max_sessions_per_day: Mapped[int] = mapped_column(Integer, default=8)
+    accept_male: Mapped[int] = mapped_column(Integer, default=1)
+    accept_female: Mapped[int] = mapped_column(Integer, default=1)
+    accept_children: Mapped[int] = mapped_column(Integer, default=0)
+    accept_seniors: Mapped[int] = mapped_column(Integer, default=1)
+
+
+class TherapistAvailability(Base):
+    __tablename__ = "therapist_availability"
+    __table_args__ = (UniqueConstraint("therapist_id", "day", name="uq_therapist_day"),)
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    therapist_id: Mapped[str] = mapped_column(ForeignKey("therapists.id", ondelete="RESTRICT"), index=True)
+    day: Mapped[str] = mapped_column(String(16))
+    working: Mapped[int] = mapped_column(Integer, default=1)
+    start_time: Mapped[str] = mapped_column(String(8), default="09:00")
+    end_time: Mapped[str] = mapped_column(String(8), default="17:00")
+    break_start: Mapped[str] = mapped_column(String(8), default="13:00")
+    break_end: Mapped[str] = mapped_column(String(8), default="14:00")
+
+
+class TherapistTherapy(Base):
+    __tablename__ = "therapist_therapies"
+    __table_args__ = (UniqueConstraint("therapist_id", "therapy_id", name="uq_therapist_therapy"),)
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    therapist_id: Mapped[str] = mapped_column(ForeignKey("therapists.id", ondelete="RESTRICT"), index=True)
+    therapy_id: Mapped[str] = mapped_column(String(64))
+    duration_mins: Mapped[int] = mapped_column(Integer, default=60)
 
 
 class TherapistLeave(Base):
@@ -122,6 +157,7 @@ class EmrRecord(Base):
     dietary_instructions: Mapped[str] = mapped_column(Text, default="")
     treatment_stage: Mapped[str] = mapped_column(String(64), default="Purva Karma")
     follow_up_date: Mapped[str] = mapped_column(String(16), default="")
+    appointment_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
 
 
@@ -219,6 +255,46 @@ class FollowUp(Base):
     followup_date: Mapped[str] = mapped_column(String(16), default="")
     reminder_sent: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(32), default="Pending")
+
+
+class MobileVerification(Base):
+    __tablename__ = "mobile_verifications"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    mobile: Mapped[str] = mapped_column(String(16), index=True)
+    purpose: Mapped[str] = mapped_column(String(32))
+    otp_code: Mapped[str] = mapped_column(String(6))
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    resend_available_at: Mapped[datetime] = mapped_column(DateTime)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    verified: Mapped[int] = mapped_column(Integer, default=0)
+    consumed: Mapped[int] = mapped_column(Integer, default=0)
+    verification_token: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class PreviousTreatmentHistory(Base):
+    __tablename__ = "previous_treatment_history"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    patient_id: Mapped[str] = mapped_column(ForeignKey("patients.id", ondelete="RESTRICT"), index=True)
+    hospital_name: Mapped[str] = mapped_column(String(255), default="")
+    therapist_name: Mapped[str] = mapped_column(String(255), default="")
+    treatment_name: Mapped[str] = mapped_column(String(255), default="")
+    diagnosis: Mapped[str] = mapped_column(Text, default="")
+    start_date: Mapped[str] = mapped_column(String(16), default="")
+    end_date: Mapped[str] = mapped_column(String(16), default="")
+    medicines: Mapped[str] = mapped_column(Text, default="")
+    notes: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class PreviousTreatmentReport(Base):
+    __tablename__ = "previous_treatment_reports"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    history_id: Mapped[str] = mapped_column(ForeignKey("previous_treatment_history.id", ondelete="RESTRICT"), index=True)
+    file_name: Mapped[str] = mapped_column(String(255))
+    content_type: Mapped[str] = mapped_column(String(64), default="")
+    stored_name: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class AuditEvent(Base):

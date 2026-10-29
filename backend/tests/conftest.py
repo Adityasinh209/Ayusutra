@@ -17,3 +17,13 @@ def client():
 
 def auth(user_id: str) -> dict:
     return {"Authorization": f"Bearer test:{user_id}"}
+
+
+def otp_token(client, headers, phone, purpose):
+    sent = client.post("/api/send-otp", headers=headers, json={"mobile": phone, "purpose": purpose})
+    assert sent.status_code == 200, sent.text
+    verified = client.post("/api/verify-otp", headers=headers, json={
+        "mobile": phone, "purpose": purpose, "otp": sent.json()["debugOtp"],
+    })
+    assert verified.status_code == 200, verified.text
+    return verified.json()["verificationToken"]

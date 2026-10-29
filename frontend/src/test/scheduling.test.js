@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { recommendSlots } from '../services/scheduling.js'
-import { confirmAppointment, cancelAppointment, getAppointmentsForPatient } from '../services/appointments.js'
+import { acceptAppointment, confirmAppointment, cancelAppointment, getAppointmentsForPatient, getAppointmentsForTherapist } from '../services/appointments.js'
+import { getAll } from '../mocks/store.js'
 
 describe('Scheduling Service', () => {
   it('returns candidate slots for a known patient-therapy pair', async () => {
@@ -86,5 +87,32 @@ describe('Appointment Confirmation', () => {
 
   it('throws when cancelling a non-existent appointment', async () => {
     await expect(cancelAppointment('nonexistent-id')).rejects.toThrow('Appointment not found.')
+  })
+
+  it('holds a patient request until reception confirms, then shows it to the therapist', async () => {
+    const slots = await recommendSlots({ patientId: 'patient-2', therapyId: 'therapy-2' })
+    const requested = await confirmAppointment(slots[0], {
+      patientId: 'patient-2',
+      therapyId: 'therapy-2',
+      createdBy: 'user-3',
+      createdByRole: 'patient',
+    })
+    expect(requested.status).toBe('Pending Confirmation')
+    const scheduled = await acceptAppointment(requested.id)
+    expect(scheduled.status).toBe('Scheduled')
+    const assigned = await getAppointmentsForTherapist(slots[0].therapistId)
+    expect(assigned.some((row) => row.id === scheduled.id && row.status === 'Scheduled')).toBe(true)
+    const mail = getAll('notifications').find((row) => row.appointmentId === scheduled.id)
+    expect(mail).toBeTruthy()
+    expect(mail.to.length).toBeGreaterThan(0)
+  })
+
+  it('does not offer slots on a past date', async () => {
+    const slots = await recommendSlots({
+      patientId: 'patient-1',
+      therapyId: 'therapy-1',
+      preferredDate: '2020-01-01',
+    })
+    expect(slots).toHaveLength(0)
   })
 })

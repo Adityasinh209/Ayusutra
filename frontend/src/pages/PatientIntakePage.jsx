@@ -9,6 +9,9 @@ import FormField, { Input, Textarea, Select } from '../components/FormField.jsx'
 import Button from '../components/Button.jsx'
 import Alert from '../components/Alert.jsx'
 import { required, validPhone, validEmail, validate } from '../utils/validation.js'
+import OtpVerification from '../components/otp/OtpVerification.jsx'
+import PreviousTreatmentSection from '../components/patient-history/PreviousTreatmentSection.jsx'
+import { persistDraftHistory } from '../services/previousTreatments.js'
 
 function initialForm(user) {
   const existing = findPatientForUser(user)
@@ -34,6 +37,8 @@ export default function PatientIntakePage() {
   const [submitError, setSubmitError] = useState(null)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [otpToken, setOtpToken] = useState('')
+  const [historyDrafts, setHistoryDrafts] = useState([])
 
   if (!user) return null
   if (user.role !== 'patient') return <Navigate to="/dashboard" replace />
@@ -41,6 +46,7 @@ export default function PatientIntakePage() {
 
   function set(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }))
+    if (field === 'phone') setOtpToken('')
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: null }))
   }
 
@@ -64,7 +70,13 @@ export default function PatientIntakePage() {
     setLoading(true)
     setSubmitError(null)
     try {
-      const patient = await submitPatientIntake(form, user)
+      if (!otpToken) {
+        setSubmitError('Verify the mobile number before completing registration.')
+        setLoading(false)
+        return
+      }
+      const patient = await submitPatientIntake({ ...form, otpVerificationToken: otpToken }, user)
+      await persistDraftHistory(patient.id, historyDrafts)
       updateUser({
         name: patient.fullName,
         email: patient.email || user.email,
@@ -119,8 +131,18 @@ export default function PatientIntakePage() {
                   placeholder="10-digit mobile number"
                   error={errors.phone}
                   maxLength={10}
+                  disabled={Boolean(otpToken)}
                 />
               </FormField>
+              <div className="sm:col-span-2">
+                <OtpVerification
+                  mobile={form.phone}
+                  purpose="patient_intake"
+                  verifiedToken={otpToken}
+                  onVerified={setOtpToken}
+                  onChangeNumber={() => setOtpToken('')}
+                />
+              </div>
               <div className="sm:col-span-2">
                 <FormField label="Address" error={errors.address} required>
                   <Input
@@ -199,7 +221,9 @@ export default function PatientIntakePage() {
             </div>
           </Card>
 
-          <Button type="submit" loading={loading} className="w-full" size="lg">
+          <PreviousTreatmentSection draftRecords={historyDrafts} onDraftChange={setHistoryDrafts} />
+
+          <Button type="submit" loading={loading} disabled={!otpToken} className="w-full" size="lg">
             Save & continue to dashboard
           </Button>
         </form>

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { homePathForUser } from '../auth/postAuthRedirect.js'
 
 const btnBase = 'inline-flex items-center justify-center rounded-full text-[20px] font-semibold cursor-pointer transition-all'
 
@@ -13,7 +14,7 @@ export default function ClerkAuthControls() {
         <span className="hidden sm:inline text-[20px] font-medium text-green-800">{user?.name}</span>
         <button
           type="button"
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate(homePathForUser(user))}
           className={`${btnBase} px-4 py-2 shadow-sm`}
           style={{ backgroundColor: '#15803d', color: '#ffffff', border: 'none' }}
         >

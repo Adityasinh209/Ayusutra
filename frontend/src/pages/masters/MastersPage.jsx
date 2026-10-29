@@ -181,7 +181,12 @@ export default function MastersPage() {
         <div className="grid gap-4">
           {therapists.map((therapist) => {
             const details = therapistDetails[therapist.id] ?? { avail: [], leaves: [] }
-            const specs = therapist.specializations || [therapist.specialization]
+            const raw = therapist.specializations
+            const specs = Array.isArray(raw)
+              ? raw
+              : typeof raw === 'string' && raw
+                ? raw.split(',').map((s) => s.trim()).filter(Boolean)
+                : []
 
             return (
               <div key={therapist.id} className="border border-stone-200 rounded-xl p-4 bg-stone-50/50 space-y-3">

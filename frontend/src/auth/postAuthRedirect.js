@@ -22,6 +22,10 @@ export function clearAuthIntent() {
   }
 }
 
+export function homePathForUser(_user) {
+  return '/dashboard'
+}
+
 export function postAuthRedirect(user, { intent, demo } = {}) {
   const resolvedIntent = intent || readAuthIntent()
 
@@ -31,12 +35,12 @@ export function postAuthRedirect(user, { intent, demo } = {}) {
 
   if (demo) {
     clearAuthIntent()
-    return '/dashboard'
+    return homePathForUser(user)
   }
 
   if (resolvedIntent === 'book') {
     clearAuthIntent()
   }
 
-  return '/dashboard'
+  return homePathForUser(user)
 }
