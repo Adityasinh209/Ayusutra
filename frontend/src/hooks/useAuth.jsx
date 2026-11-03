@@ -19,12 +19,16 @@ export function AuthProvider({ children }) {
     }
     setApiTokenGetter(async () => {
       try {
-        return (await getToken()) || ''
+        return (await getToken({ skipCache: true })) || ''
       } catch {
-        return ''
+        try {
+          return (await getToken()) || ''
+        } catch {
+          return ''
+        }
       }
     })
-    getToken().then((value) => setApiToken(value || '')).catch(() => setApiToken(''))
+    getToken({ skipCache: true }).then((value) => setApiToken(value || '')).catch(() => setApiToken(''))
   }, [isSignedIn, clerkUser, getToken])
   const [sessionUser, setSessionUser] = useState(() => getSession())
 

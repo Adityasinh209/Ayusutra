@@ -31,8 +31,12 @@ def token_claims(token: str) -> dict:
     try:
         key = client.get_signing_key_from_jwt(token)
         return jwt.decode(token, key.key, algorithms=["RS256"], options={"verify_aud": False})
-    except Exception as exc:
+    except jwt.ExpiredSignatureError as exc:
+        raise HTTPException(status_code=401, detail="Session expired. Refresh the page and try again.") from exc
+    except jwt.PyJWTError as exc:
         raise HTTPException(status_code=401, detail="Invalid token.") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail="Could not verify sign-in. Refresh the page and try again.") from exc
 
 
 def user_from_claims(db: Session, claims: dict) -> User:

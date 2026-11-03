@@ -7,6 +7,21 @@ from tests.conftest import auth, emergency_fields, otp_token
 
 def test_health(client):
     assert client.get("/health").json()["status"] == "ok"
+    assert client.get("/api/health").json()["status"] == "ok"
+
+
+def test_cors_allows_vercel_preview(client):
+    origin = "https://ayusutra001.vercel.app"
+    res = client.options(
+        "/api/send-otp",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "authorization,content-type",
+        },
+    )
+    assert res.status_code in {200, 204}
+    assert res.headers.get("access-control-allow-origin") == origin
 
 
 def test_missing_token(client):

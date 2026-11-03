@@ -20,46 +20,92 @@ export function remoteReady() {
   return Boolean(base) && Boolean(token)
 }
 
-async function bearerAuthorization() {
-  try {
-    const value = (await resolveBearerToken()) || token
-    return value ? `Bearer ${value}` : ''
-  } catch {
-    return token ? `Bearer ${token}` : ''
+function apiMessage(data, fallback) {
+  const detail = data?.detail
+  if (typeof detail === 'string' && detail.trim()) return detail
+  if (Array.isArray(detail) && detail.length) {
+    return detail.map((item) => item.msg || item.message || String(item)).join(' ')
   }
+  return fallback
+}
+
+function isNetworkError(err) {
+  const message = String(err?.message || err || '')
+  return err instanceof TypeError || /failed to fetch|networkerror|load failed|network request failed/i.test(message)
+}
+
+async function bearerAuthorization() {
+  let value = ''
+  try {
+    value = (await resolveBearerToken()) || token
+  } catch {
+    value = token
+  }
+  if (!value && base) {
+    await new Promise((resolve) => setTimeout(resolve, 250))
+    try {
+      value = (await resolveBearerToken()) || token
+    } catch {
+      value = token
+    }
+  }
+  return value ? `Bearer ${value}` : ''
+}
+
+async function requestWithRetry(run) {
+  let last
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await run()
+    } catch (err) {
+      last = err
+      if (!isNetworkError(err) || attempt === 2) break
+      await new Promise((resolve) => setTimeout(resolve, 2500 * (attempt + 1)))
+    }
+  }
+  if (isNetworkError(last)) {
+    const err = new Error(
+      'Could not reach the clinic API. If Render is waking up, wait 30 seconds and try again. Confirm Vercel VITE_API_URL matches your live Render URL.',
+    )
+    err.status = 0
+    throw err
+  }
+  throw last
+}
+
+async function parseResponse(res, fallback) {
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const err = new Error(apiMessage(data, fallback))
+    err.status = res.status
+    throw err
+  }
+  return data
 }
 
 export async function apiUpload(path, formData) {
   const auth = await bearerAuthorization()
-  const res = await fetch(`${base}${path}`, {
-    method: 'POST',
-    headers: auth ? { Authorization: auth } : {},
-    body: formData,
+  return requestWithRetry(async () => {
+    const res = await fetch(`${base}${path}`, {
+      method: 'POST',
+      headers: auth ? { Authorization: auth } : {},
+      body: formData,
+    })
+    return parseResponse(res, 'Upload failed.')
   })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    const err = new Error(typeof data.detail === 'string' ? data.detail : 'Upload failed.')
-    err.status = res.status
-    throw err
-  }
-  return data
 }
 
 export async function api(path, { method = 'GET', body } = {}) {
   const auth = await bearerAuthorization()
-  const res = await fetch(`${base}${path}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(auth ? { Authorization: auth } : {}),
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
+  return requestWithRetry(async () => {
+    const res = await fetch(`${base}${path}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(auth ? { Authorization: auth } : {}),
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
+    return parseResponse(res, 'Request failed.')
   })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    const err = new Error(typeof data.detail === 'string' ? data.detail : 'Request failed.')
-    err.status = res.status
-    throw err
-  }
-  return data
 }

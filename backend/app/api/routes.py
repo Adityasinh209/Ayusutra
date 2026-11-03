@@ -65,6 +65,7 @@ def _audit(db: Session, actor: str, action: str, entity: str, entity_id: str):
 
 
 @router.get("/health")
+@router.get("/api/health")
 def health():
     return {"status": "ok"}
 

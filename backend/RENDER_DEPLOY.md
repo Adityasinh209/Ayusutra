@@ -32,6 +32,12 @@ MYSQL_SSL_SKIP_VERIFY=true
 
 SMTP / Fast2SMS do **not** affect startup; only email/SMS at runtime.
 
+OTP / “Invalid token” / “Failed to fetch”:
+
+- `CORS_ORIGINS` must include the Vercel origin, e.g. `https://ayusutra001.vercel.app` (no trailing slash). Also set `FRONTEND_URL` to that same origin. Preview URLs (`*.vercel.app`) are allowed by default.
+- `FAST2SMS_API_KEY` must be set on **Render**, not Vercel, or Send OTP returns 503 after the request succeeds.
+- If the first Send OTP after idle time fails, wait ~30s (Render cold start) and retry.
+
 ## Verify deploy
 
 When status is **Live**, open:

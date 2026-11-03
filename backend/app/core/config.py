@@ -25,7 +25,10 @@ class Settings(BaseSettings):
     mysql_ssl_ca: str = ""
     # Set true on Render only if CA file is not mounted yet (capstone/demo).
     mysql_ssl_skip_verify: bool = False
-    cors_origins: str = "http://localhost:5173,http://localhost:5174,http://localhost:5175"
+    cors_origins: str = (
+        "http://localhost:5173,http://localhost:5174,http://localhost:5175,"
+        "https://ayusutra001.vercel.app"
+    )
     clerk_secret_key: str = ""
     clerk_frontend_api: str = ""
     allow_test_tokens: bool = False
@@ -64,7 +67,25 @@ class Settings(BaseSettings):
 
     @property
     def cors_origin_list(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        seen: list[str] = []
+
+        def add(raw: str | None) -> None:
+            origin = (raw or "").strip().strip('"').strip("'").rstrip("/")
+            if origin and origin not in seen:
+                seen.append(origin)
+
+        for part in self.cors_origins.split(","):
+            add(part)
+        add(self.frontend_url)
+        add("https://ayusutra001.vercel.app")
+        add("http://localhost:5173")
+        add("http://localhost:5174")
+        add("http://localhost:5175")
+        return seen
+
+    @property
+    def cors_origin_regex(self) -> str:
+        return r"https://([a-z0-9-]+\.)*vercel\.app"
 
 
 settings = Settings()

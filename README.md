@@ -148,6 +148,7 @@ This repository includes a root `vercel.json` so Vercel builds the Vite app from
    | Variable | Required | Notes |
    |---|---|---|
    | `VITE_CLERK_PUBLISHABLE_KEY` | Yes | Same Clerk **publishable** key as local `.env` |
+   | `VITE_API_URL` | For live OTP/API | Render API origin, e.g. `https://ayursutra-api.onrender.com` (no trailing slash) |
    | `VITE_GROQ_API_KEY` | For assistant | Same as local if you use AyurSutra Assistant |
    | `VITE_APP_NAME` | Optional | Defaults in `.env.example` |
 
