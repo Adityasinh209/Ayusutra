@@ -65,7 +65,13 @@ def sms_error_detail(data: dict) -> str:
     if "ip" in lowered:
         return "Fast2SMS blocked this server IP. In Fast2SMS Dev API, turn off IP allow-listing (Render IPs change)."
     if any(word in lowered for word in ("dlt", "template", "sender", "otp id", "otp_id")):
-        return "Fast2SMS needs an approved OTP template. Add FAST2SMS_OTP_ID from Smart OTP → Templates."
+        extra = f" Fast2SMS said: {text}." if text else ""
+        return (
+            "Fast2SMS blocked the SMS until an OTP template is approved."
+            " Open Fast2SMS → Smart OTP → Add OTP Template, copy the OTP ID,"
+            " then set FAST2SMS_OTP_ID on Render and redeploy."
+            f"{extra}"
+        )
     if text:
         return f"Could not send the OTP ({text})."
     return "Could not send the OTP. Check Fast2SMS API key, wallet, and IP allow-list on Render."
@@ -148,6 +154,20 @@ def _deliver_fast2sms(phone: str, code: str) -> None:
             timeout=20,
         )
         if accept("bulk-get", response):
+            return
+        response = httpx.post(
+            FAST2SMS_URL,
+            headers=headers,
+            json={
+                "route": "q",
+                "message": f"Your AyurSutra OTP is {code}. Valid for 5 minutes. Do not share this code.",
+                "language": "english",
+                "flash": 0,
+                "numbers": phone,
+            },
+            timeout=20,
+        )
+        if accept("quick-sms", response):
             return
     except httpx.HTTPError:
         log.exception("Fast2SMS request failed")
