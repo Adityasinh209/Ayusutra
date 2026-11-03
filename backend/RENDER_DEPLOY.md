@@ -35,7 +35,7 @@ SMTP / Fast2SMS do **not** affect startup; only email/SMS at runtime.
 OTP / “Invalid token” / “Failed to fetch”:
 
 - `CORS_ORIGINS` must include the Vercel origin, e.g. `https://ayusutra001.vercel.app` (no trailing slash). Also set `FRONTEND_URL` to that same origin. Preview URLs (`*.vercel.app`) are allowed by default.
-- `FAST2SMS_API_KEY` must be set on **Render**, not Vercel, or Send OTP returns 503 after the request succeeds.
+- `FAST2SMS_API_KEY` must be set on **Render**, not Vercel (no quotes, no `Bearer ` prefix). If Send OTP says the wallet is empty, recharge Fast2SMS. If it mentions IP allow-listing, turn that off in Fast2SMS → Dev API (Render IPs change). Optional: `FAST2SMS_OTP_ID` from Smart OTP → Templates.
 - If the first Send OTP after idle time fails, wait ~30s (Render cold start) and retry.
 
 ## Verify deploy

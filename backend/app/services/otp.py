@@ -26,6 +26,7 @@ PURPOSES = {
 OTP_TTL = timedelta(minutes=5)
 RESEND_WAIT = timedelta(seconds=30)
 FAST2SMS_URL = "https://www.fast2sms.com/dev/bulkV2"
+FAST2SMS_OTP_URL = "https://www.fast2sms.com/dev/otp/send"
 
 
 def _now():
@@ -47,6 +48,118 @@ def _generate_otp() -> str:
     return f"{secrets.randbelow(1_000_000):06d}"
 
 
+def _sms_message(data: dict) -> str:
+    message = data.get("message")
+    if isinstance(message, list):
+        return ", ".join(str(item) for item in message if item).strip()
+    return str(message or data.get("status_code") or "").strip()
+
+
+def sms_error_detail(data: dict) -> str:
+    text = _sms_message(data)
+    lowered = text.lower()
+    if "invalid" in lowered and ("key" in lowered or "auth" in lowered or "token" in lowered):
+        return "SMS gateway rejected the API key. Recreate FAST2SMS_API_KEY on Fast2SMS and paste it on Render (no quotes)."
+    if any(word in lowered for word in ("balance", "credit", "wallet", "recharge", "insufficient")):
+        return "Fast2SMS wallet has no balance. Recharge the Fast2SMS account and try again."
+    if "ip" in lowered:
+        return "Fast2SMS blocked this server IP. In Fast2SMS Dev API, turn off IP allow-listing (Render IPs change)."
+    if any(word in lowered for word in ("dlt", "template", "sender", "otp id", "otp_id")):
+        return "Fast2SMS needs an approved OTP template. Add FAST2SMS_OTP_ID from Smart OTP → Templates."
+    if text:
+        return f"Could not send the OTP ({text})."
+    return "Could not send the OTP. Check Fast2SMS API key, wallet, and IP allow-list on Render."
+
+
+def _parse_sms_body(response: httpx.Response) -> dict:
+    try:
+        data = response.json()
+        return data if isinstance(data, dict) else {"message": str(data)}
+    except Exception:
+        text = (response.text or "").strip()[:300]
+        return {"message": text} if text else {}
+
+
+def _sms_ok(response: httpx.Response, data: dict) -> bool:
+    if response.status_code >= 400:
+        return False
+    if data.get("return") is False:
+        return False
+    status = data.get("status_code")
+    if isinstance(status, int) and status >= 400:
+        return False
+    return True
+
+
+def _deliver_fast2sms(phone: str, code: str) -> None:
+    key = settings.fast2sms_api_key
+    otp_id = (settings.fast2sms_otp_id or "").strip()
+    headers = {"Authorization": key, "Content-Type": "application/json"}
+    last_data: dict = {}
+    last_status = None
+
+    def accept(name: str, response: httpx.Response) -> bool:
+        nonlocal last_data, last_status
+        last_status = response.status_code
+        last_data = _parse_sms_body(response)
+        if _sms_ok(response, last_data):
+            log.info("Fast2SMS accepted via %s to=%s", name, phone)
+            return True
+        return False
+
+    try:
+        if otp_id:
+            response = httpx.post(
+                FAST2SMS_OTP_URL,
+                headers=headers,
+                json={
+                    "mobile": phone,
+                    "otp_id": otp_id,
+                    "otp": code,
+                    "otp_length": 6,
+                    "otp_expiry": 5,
+                },
+                timeout=20,
+            )
+            if accept("otp-send", response):
+                return
+        response = httpx.post(
+            FAST2SMS_URL,
+            headers=headers,
+            json={
+                "route": "otp",
+                "variables_values": code,
+                "numbers": phone,
+                "flash": 0,
+            },
+            timeout=20,
+        )
+        if accept("bulk-post", response):
+            return
+        response = httpx.get(
+            FAST2SMS_URL,
+            params={
+                "authorization": key,
+                "route": "otp",
+                "variables_values": code,
+                "numbers": phone,
+                "flash": 0,
+            },
+            timeout=20,
+        )
+        if accept("bulk-get", response):
+            return
+    except httpx.HTTPError:
+        log.exception("Fast2SMS request failed")
+        raise HTTPException(
+            status_code=503,
+            detail="Could not reach Fast2SMS. Wait a moment and try Send OTP again.",
+        ) from None
+
+    log.error("Fast2SMS failed status=%s body=%s", last_status, last_data)
+    raise HTTPException(status_code=503, detail=sms_error_detail(last_data))
+
+
 def _deliver(phone: str, code: str) -> None:
     provider = (settings.sms_provider or "fast2sms").strip().lower()
     if provider == "console":
@@ -54,33 +167,7 @@ def _deliver(phone: str, code: str) -> None:
         return
     if not settings.fast2sms_api_key:
         raise HTTPException(status_code=503, detail="SMS gateway is not configured. OTP could not be sent.")
-    try:
-        response = httpx.post(
-            FAST2SMS_URL,
-            headers={
-                "authorization": settings.fast2sms_api_key,
-                "Content-Type": "application/json",
-            },
-            json={
-                "route": "otp",
-                "variables_values": code,
-                "numbers": phone,
-            },
-            timeout=15,
-        )
-        data = {}
-        try:
-            data = response.json()
-        except Exception:
-            data = {}
-        if response.status_code >= 400 or data.get("return") is False:
-            log.error("Fast2SMS failed status=%s body=%s", response.status_code, data)
-            raise HTTPException(status_code=503, detail="Could not send the OTP. Please try again.")
-    except HTTPException:
-        raise
-    except Exception:
-        log.exception("Fast2SMS request failed")
-        raise HTTPException(status_code=503, detail="Could not send the OTP. Please try again.")
+    _deliver_fast2sms(phone, code)
 
 
 def send_otp(db: Session, mobile: str, purpose: str) -> dict:

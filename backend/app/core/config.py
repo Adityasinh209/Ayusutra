@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     dummy_otp: str = ""
     sms_provider: str = "fast2sms"
     fast2sms_api_key: str = ""
+    # Smart OTP template id from Fast2SMS → Smart OTP → Templates (optional).
+    fast2sms_otp_id: str = ""
     otp_hmac_secret: str = "ayursutra-otp-hmac"
     otp_max_attempts: int = 5
     otp_hourly_limit: int = 5
@@ -52,6 +54,16 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return _normalize_database_url(value)
         return value
+
+    @field_validator("fast2sms_api_key", "fast2sms_otp_id", mode="before")
+    @classmethod
+    def normalize_sms_secrets(cls, value):
+        if not isinstance(value, str):
+            return value
+        key = value.strip().strip('"').strip("'")
+        if key.lower().startswith("bearer "):
+            key = key[7:].strip()
+        return key
 
     @field_validator("clerk_frontend_api", mode="before")
     @classmethod
