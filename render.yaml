@@ -1,4 +1,17 @@
 services:
+  # Backend API — create this Web Service first; env vars are set in the Render dashboard.
+  - type: web
+    name: ayursutra-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: MYSQL_SSL_SKIP_VERIFY
+        value: "true"
+
   - type: web
     runtime: static
     name: ayursutra-frontend

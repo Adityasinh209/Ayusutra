@@ -26,7 +26,7 @@ async def lifespan(_app):
     except Exception as exc:
         import logging
 
-        logging.getLogger("ayursutra").error("Database startup failed: %s", exc)
+        logging.getLogger("ayursutra").error("Database startup failed: %s", exc, exc_info=True)
         raise
     yield
 
