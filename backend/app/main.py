@@ -16,18 +16,23 @@ from app import models  # noqa: F401
 
 @asynccontextmanager
 async def lifespan(_app):
+    import logging
+
+    log = logging.getLogger("ayursutra")
     try:
         sync_schema(engine)
-        db = SessionLocal()
+    except Exception as exc:
+        log.error("Database schema sync failed: %s", exc, exc_info=True)
+        raise
+    db = SessionLocal()
+    try:
         try:
             seed(db)
-        finally:
-            db.close()
-    except Exception as exc:
-        import logging
-
-        logging.getLogger("ayursutra").error("Database startup failed: %s", exc, exc_info=True)
-        raise
+        except Exception as exc:
+            db.rollback()
+            log.error("Demo seed failed (API will still start): %s", exc, exc_info=True)
+    finally:
+        db.close()
     yield
 
 

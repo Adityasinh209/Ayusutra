@@ -196,7 +196,7 @@ def _seed_clinic_gaps(db: Session) -> None:
 
 def _seed_review_cases(db: Session) -> None:
     """Completed Rahul Patel and in-progress Priya Shah journeys for the review demo."""
-    if db.get(Patient, "patient-rahul-patel"):
+    if db.get(Appointment, "appt-rahul-patel"):
         return
     db.add_all([
         Patient(
@@ -224,6 +224,9 @@ def _seed_review_cases(db: Session) -> None:
             role="patient", role_label="Patient", phone="9811100002",
             patient_id="patient-priya-shah", active=1,
         ),
+    ])
+    db.flush()
+    db.add_all([
         PanchakarmaPlan(
             id="plan-rahul-patel", patient_id="patient-rahul-patel", doctor_id="user-1",
             emr_id="emr-rahul-patel", procedure_name="Abhyanga", primary_panchakarma="Abhyanga",
@@ -308,6 +311,7 @@ def _seed_review_cases(db: Session) -> None:
             plan_id="plan-priya-shah",             followup_date="2026-11-20", reminder_sent=0, status="Pending",
         ),
     ])
+    db.flush()
     from app.services.uploads import upload_root
     folder = upload_root() / "reports"
     folder.mkdir(parents=True, exist_ok=True)
