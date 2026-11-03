@@ -34,6 +34,11 @@ function isNetworkError(err) {
   return err instanceof TypeError || /failed to fetch|networkerror|load failed|network request failed/i.test(message)
 }
 
+function isAuthRetry(err) {
+  const message = String(err?.message || '')
+  return err?.status === 401 && /session expired|invalid token|could not verify sign-in|missing token/i.test(message)
+}
+
 async function bearerAuthorization() {
   let value = ''
   try {
@@ -49,6 +54,7 @@ async function bearerAuthorization() {
       value = token
     }
   }
+  if (value) token = value
   return value ? `Bearer ${value}` : ''
 }
 
@@ -59,8 +65,10 @@ async function requestWithRetry(run) {
       return await run()
     } catch (err) {
       last = err
-      if (!isNetworkError(err) || attempt === 2) break
-      await new Promise((resolve) => setTimeout(resolve, 2500 * (attempt + 1)))
+      const network = isNetworkError(err)
+      const authRetry = isAuthRetry(err) && attempt < 2
+      if (!(network || authRetry) || attempt === 2) break
+      await new Promise((resolve) => setTimeout(resolve, network ? 2500 * (attempt + 1) : 400))
     }
   }
   if (isNetworkError(last)) {
@@ -84,8 +92,8 @@ async function parseResponse(res, fallback) {
 }
 
 export async function apiUpload(path, formData) {
-  const auth = await bearerAuthorization()
   return requestWithRetry(async () => {
+    const auth = await bearerAuthorization()
     const res = await fetch(`${base}${path}`, {
       method: 'POST',
       headers: auth ? { Authorization: auth } : {},
@@ -96,8 +104,8 @@ export async function apiUpload(path, formData) {
 }
 
 export async function api(path, { method = 'GET', body } = {}) {
-  const auth = await bearerAuthorization()
   return requestWithRetry(async () => {
+    const auth = await bearerAuthorization()
     const res = await fetch(`${base}${path}`, {
       method,
       headers: {

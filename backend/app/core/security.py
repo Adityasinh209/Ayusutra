@@ -30,7 +30,14 @@ def token_claims(token: str) -> dict:
         raise HTTPException(status_code=401, detail="Auth is not configured.")
     try:
         key = client.get_signing_key_from_jwt(token)
-        return jwt.decode(token, key.key, algorithms=["RS256"], options={"verify_aud": False})
+        return jwt.decode(
+            token,
+            key.key,
+            algorithms=["RS256"],
+            options={"verify_aud": False},
+            # Clerk session JWTs last ~60s; Render clock drift otherwise looks like expiry.
+            leeway=180,
+        )
     except jwt.ExpiredSignatureError as exc:
         raise HTTPException(status_code=401, detail="Session expired. Refresh the page and try again.") from exc
     except jwt.PyJWTError as exc:
