@@ -22,7 +22,7 @@ If **Root Directory** is wrong, logs show: `ModuleNotFoundError: No module named
 Required for startup:
 
 - `DATABASE_URL` — must reach MySQL from Render
-- `CLERK_FRONTEND_API` — e.g. `your-instance.clerk.accounts.dev` (no `https://`)
+- `CLERK_FRONTEND_API` — hostname only, e.g. `your-instance.clerk.accounts.dev` (no `https://`). In Clerk Dashboard → **Configure** → **Domains**, copy the **Frontend API** host. It must be the **same Clerk application** as Vercel’s `VITE_CLERK_PUBLISHABLE_KEY` (Dashboard → **API Keys**). A mismatch causes **Invalid token** on OTP and other API calls.
 
 If using **Aiven / cloud MySQL** and logs mention **SSL** or **certificate**:
 

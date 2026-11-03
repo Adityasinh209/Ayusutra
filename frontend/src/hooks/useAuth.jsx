@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useMemo, useCallback, useEffect } 
 import { useAuth as useClerkAuth, useClerk, useUser } from '@clerk/react'
 import { login as loginService, loginAs as loginAsService, logout as logoutService, getSession, updateSession } from '../services/auth.js'
 import { mapClerkUserToClinicUser } from '../auth/mapClerkUser.js'
-import { setApiToken } from '../services/http.js'
+import { setApiToken, setApiTokenGetter } from '../services/http.js'
 
 const AuthContext = createContext(null)
 
@@ -14,8 +14,16 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!isSignedIn) {
       setApiToken('')
+      setApiTokenGetter(async () => '')
       return
     }
+    setApiTokenGetter(async () => {
+      try {
+        return (await getToken()) || ''
+      } catch {
+        return ''
+      }
+    })
     getToken().then((value) => setApiToken(value || '')).catch(() => setApiToken(''))
   }, [isSignedIn, clerkUser, getToken])
   const [sessionUser, setSessionUser] = useState(() => getSession())

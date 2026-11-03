@@ -1,8 +1,14 @@
 const base = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 let token = ''
+/** @type {() => Promise<string>} */
+let resolveBearerToken = async () => token
 
 export function setApiToken(value) {
   token = value || ''
+}
+
+export function setApiTokenGetter(getter) {
+  resolveBearerToken = getter || (async () => token)
 }
 
 export function hasApiToken() {
@@ -14,10 +20,20 @@ export function remoteReady() {
   return Boolean(base) && Boolean(token)
 }
 
+async function bearerAuthorization() {
+  try {
+    const value = (await resolveBearerToken()) || token
+    return value ? `Bearer ${value}` : ''
+  } catch {
+    return token ? `Bearer ${token}` : ''
+  }
+}
+
 export async function apiUpload(path, formData) {
+  const auth = await bearerAuthorization()
   const res = await fetch(`${base}${path}`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: auth ? { Authorization: auth } : {},
     body: formData,
   })
   const data = await res.json().catch(() => ({}))
@@ -30,11 +46,12 @@ export async function apiUpload(path, formData) {
 }
 
 export async function api(path, { method = 'GET', body } = {}) {
+  const auth = await bearerAuthorization()
   const res = await fetch(`${base}${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      ...(auth ? { Authorization: auth } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   })

@@ -50,6 +50,18 @@ class Settings(BaseSettings):
             return _normalize_database_url(value)
         return value
 
+    @field_validator("clerk_frontend_api", mode="before")
+    @classmethod
+    def normalize_clerk_frontend_api(cls, value):
+        if not isinstance(value, str):
+            return value
+        host = value.strip().strip('"').strip("'")
+        if host.startswith("https://"):
+            host = host[len("https://") :]
+        if host.startswith("http://"):
+            host = host[len("http://") :]
+        return host.rstrip("/")
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
