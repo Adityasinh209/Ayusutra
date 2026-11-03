@@ -15,6 +15,16 @@ def canonical_phone(raw: str) -> str:
     return digits
 
 
+def canonical_indian_mobile(raw: str) -> str:
+    mobile = canonical_phone(raw)
+    if mobile[0] not in "6789":
+        raise HTTPException(
+            status_code=422,
+            detail="Enter a valid 10-digit Indian mobile number starting with 6-9.",
+        )
+    return mobile
+
+
 def assert_phone_available(
     db: Session,
     phone: str,

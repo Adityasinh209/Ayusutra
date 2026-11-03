@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth.jsx'
 import { listPatients, getPatient } from '../../services/patients.js'
 import { listTherapies } from '../../services/therapies.js'
+import { listTherapists } from '../../services/therapists.js'
 import { listPlans } from '../../services/plans.js'
-import { recommendSlots } from '../../services/scheduling.js'
+import { isTherapistQualified, recommendSlots } from '../../services/scheduling.js'
 import { confirmAppointment } from '../../services/appointments.js'
 import PageHeader from '../../components/PageHeader.jsx'
 import Card, { CardHeader } from '../../components/Card.jsx'
@@ -20,14 +21,19 @@ export default function SchedulingPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const queryTherapyId = searchParams.get('therapyId') || location.state?.therapyId || ''
+  const queryPlanId = searchParams.get('planId') || location.state?.planId || ''
 
   const [patients, setPatients] = useState([])
   const [therapies, setTherapies] = useState([])
+  const [therapists, setTherapists] = useState([])
   const [plans, setPlans] = useState([])
 
   const [form, setForm] = useState({
     patientId: location.state?.patientId ?? (user?.role === 'patient' ? user.patientId || '' : ''),
-    therapyId: '',
+    therapyId: queryTherapyId,
+    preferredTherapistId: '',
     treatmentStage: 'Purva Karma',
     sessionNumber: 1,
     preferredTime: '',
@@ -76,10 +82,16 @@ export default function SchedulingPage() {
     const patientsPromise = user?.role === 'patient' && user.patientId
       ? getPatient(user.patientId).then((patient) => [patient]).catch(() => [])
       : listPatients().catch(() => [])
-    Promise.all([patientsPromise, listTherapies(), listPlans().catch(() => [])]).then(([p, t, pl]) => {
+    Promise.all([
+      patientsPromise,
+      listTherapies(),
+      listPlans().catch(() => []),
+      listTherapists().catch(() => []),
+    ]).then(([p, t, pl, th]) => {
       setPatients(p)
       setTherapies(t)
       setPlans(pl)
+      setTherapists(th)
     })
   }, [user?.role, user?.patientId])
 
@@ -87,7 +99,7 @@ export default function SchedulingPage() {
   useEffect(() => {
     if (form.patientId) {
       const activePlan = plans.find(
-        (pl) => pl.patientId === form.patientId && (pl.status === 'In Progress' || pl.status === 'Active'),
+        (pl) => pl.id === queryPlanId || (pl.patientId === form.patientId && (pl.status === 'In Progress' || pl.status === 'Active')),
       )
       if (activePlan) {
         const matchingTherapy = therapies.find(
@@ -98,14 +110,20 @@ export default function SchedulingPage() {
           ...prev,
           treatmentStage: activePlan.treatmentStage || prev.treatmentStage,
           sessionNumber: (activePlan.completedSessions || 0) + 1,
-          ...(matchingTherapy ? { therapyId: matchingTherapy.id } : {}),
+          therapyId: prev.therapyId || queryTherapyId || matchingTherapy?.id || '',
         }))
+      } else if (queryTherapyId) {
+        setForm((prev) => ({ ...prev, therapyId: prev.therapyId || queryTherapyId }))
       }
     }
-  }, [form.patientId, plans, therapies])
+  }, [form.patientId, plans, therapies, queryPlanId, queryTherapyId])
 
   function set(field, value) {
-    setForm((prev) => ({ ...prev, [field]: value }))
+    setForm((prev) => ({
+      ...prev,
+      [field]: value,
+      ...(field === 'therapyId' ? { preferredTherapistId: '' } : {}),
+    }))
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: null }))
     setSlots(null)
     setSelectedSlot(null)
@@ -133,6 +151,7 @@ export default function SchedulingPage() {
         therapyId: form.therapyId,
         preferredDate: form.preferredDate,
         preferredTime: form.preferredTime,
+        preferredTherapistId: form.preferredTherapistId,
       })
       setSlots(results)
       if (results.length) setSelectedSlot(results.find((s) => s.recommended) ?? results[0])
@@ -147,13 +166,14 @@ export default function SchedulingPage() {
     if (!selectedSlot) return
     setConfirming(true)
     try {
-      const activePlan = plans.find((pl) => pl.patientId === form.patientId)
+      const activePlan = plans.find((pl) => pl.id === queryPlanId)
+        || plans.find((pl) => pl.patientId === form.patientId)
       await confirmAppointment(selectedSlot, {
         patientId: form.patientId,
         therapyId: form.therapyId,
         treatmentStage: form.treatmentStage,
         sessionNumber: Number(form.sessionNumber) || 1,
-        planId: activePlan?.id || null,
+        planId: activePlan?.id || queryPlanId || null,
         createdBy: user.id,
         createdByRole: user.role,
       })
@@ -168,6 +188,7 @@ export default function SchedulingPage() {
       setForm({
         patientId: '',
         therapyId: '',
+        preferredTherapistId: '',
         treatmentStage: 'Purva Karma',
         sessionNumber: 1,
         preferredTime: '',
@@ -183,6 +204,7 @@ export default function SchedulingPage() {
 
   const selectedPatient = patients.find((p) => p.id === form.patientId)
   const selectedTherapy = therapies.find((t) => t.id === form.therapyId)
+  const qualifiedTherapists = therapists.filter((th) => !selectedTherapy || isTherapistQualified(th, selectedTherapy))
   const recommended = slots?.find((s) => s.recommended) ?? null
   const alternatives = slots?.filter((s) => !s.recommended) ?? []
 
@@ -240,6 +262,20 @@ export default function SchedulingPage() {
                 {therapies.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name} ({t.defaultDurationMins} min) — {t.requiredRoomType || 'General'}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+
+            <FormField label="Preferred Therapist" hint="Optional. Leave as any available therapist.">
+              <Select
+                value={form.preferredTherapistId}
+                onChange={(e) => set('preferredTherapistId', e.target.value)}
+              >
+                <option value="">Any available therapist</option>
+                {qualifiedTherapists.map((th) => (
+                  <option key={th.id} value={th.id}>
+                    {th.name}
                   </option>
                 ))}
               </Select>

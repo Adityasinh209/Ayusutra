@@ -38,14 +38,19 @@ function therapistSpecList(therapist) {
   return []
 }
 
-function isTherapistQualified(therapist, therapy) {
+function therapistTherapyIds(therapist) {
+  const ids = therapist?.therapyIds
+  if (Array.isArray(ids)) return ids
+  if (typeof ids === 'string' && ids) return ids.split(',').map((x) => x.trim()).filter(Boolean)
+  return []
+}
+
+export function isTherapistQualified(therapist, therapy) {
   if (!therapist || !therapy) return false
   const specs = therapistSpecList(therapist)
   if (specs.includes(therapy.name)) return true
   if (specs.includes(therapy.requiredTherapistSpecialization)) return true
-  if (Array.isArray(therapist.therapyIds) && therapist.therapyIds.includes(therapy.id)) {
-    return true
-  }
+  if (therapistTherapyIds(therapist).includes(therapy.id)) return true
   return false
 }
 
@@ -113,11 +118,11 @@ function addMinutes(timeStr, mins) {
 /**
  * Recommends valid, constraint-checked slots for a patient and therapy.
  */
-export async function recommendSlots({ patientId, therapyId, preferredDate = '', preferredTime = '' }) {
+export async function recommendSlots({ patientId, therapyId, preferredDate = '', preferredTime = '', preferredTherapistId = '' }) {
   if (remoteReady()) {
     return api('/api/scheduling/recommend', {
       method: 'POST',
-      body: { patientId, therapyId, preferredDate, preferredTime },
+      body: { patientId, therapyId, preferredDate, preferredTime, preferredTherapistId },
     })
   }
   await delay()
@@ -162,7 +167,8 @@ export async function recommendSlots({ patientId, therapyId, preferredDate = '',
     }
   }
 
-  const qualifiedTherapists = allTherapists.filter((th) => isTherapistQualified(th, therapy))
+  const qualifiedTherapists = allTherapists.filter((th) => isTherapistQualified(th, therapy)
+    && (!preferredTherapistId || th.id === preferredTherapistId))
   const suitableRooms = allRooms.filter((rm) => isRoomCompatible(rm, therapy))
   const dur = therapy.defaultDurationMins || 60
 

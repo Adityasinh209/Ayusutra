@@ -171,3 +171,33 @@ export async function cancelAppointment(id) {
   }
   return updated
 }
+
+export async function requestAppointmentCancel(id) {
+  if (remoteReady()) return api(`/api/appointments/${id}/request-cancel`, { method: 'POST' })
+  await delay()
+  const existing = getById('appointments', id)
+  if (!existing) {
+    const err = new Error('Appointment not found.')
+    err.status = 404
+    throw err
+  }
+  return updateItem('appointments', id, { cancellationRequest: 'Requested' })
+}
+
+export async function approveAppointmentCancel(id) {
+  if (remoteReady()) return api(`/api/appointments/${id}/approve-cancel`, { method: 'POST' })
+  await delay()
+  return cancelAppointment(id)
+}
+
+export async function rejectAppointmentCancel(id) {
+  if (remoteReady()) return api(`/api/appointments/${id}/reject-cancel`, { method: 'POST' })
+  await delay()
+  const existing = getById('appointments', id)
+  if (!existing) {
+    const err = new Error('Appointment not found.')
+    err.status = 404
+    throw err
+  }
+  return updateItem('appointments', id, { cancellationRequest: 'Rejected' })
+}

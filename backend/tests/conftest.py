@@ -2,6 +2,7 @@ import os
 
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 os.environ["ALLOW_TEST_TOKENS"] = "true"
+os.environ["SMS_PROVIDER"] = "console"
 
 import pytest
 from fastapi.testclient import TestClient
@@ -27,3 +28,11 @@ def otp_token(client, headers, phone, purpose):
     })
     assert verified.status_code == 200, verified.text
     return verified.json()["verificationToken"]
+
+
+def emergency_fields(client, headers, name="Kin Contact", phone="9111000001"):
+    return {
+        "emergencyName": name,
+        "emergencyPhone": phone,
+        "emergencyOtpVerificationToken": otp_token(client, headers, phone, "emergency_contact"),
+    }

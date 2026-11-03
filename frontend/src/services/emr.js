@@ -15,6 +15,7 @@ import { generateId } from '../utils/id.js'
 import { createPlan } from './plans.js'
 import { api, remoteReady } from './http.js'
 import { ensureClinicalBill, ensureClinicalFollowup, pickOpenAppointment } from './continuity.js'
+import { notifyTherapyAssigned } from './notify.js'
 
 function delay(ms = 350) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -64,7 +65,7 @@ export async function createEmr(data, doctorId) {
         completedSessions: 0,
         startDate: new Date().toISOString().slice(0, 10),
         endDate: data.followUpDate || '',
-        assignedTherapistId: openVisit?.therapistId || null,
+        assignedTherapistId: openVisit?.therapistId || getAll('users').find((row) => row.id === doctorId)?.therapistId || null,
         assignedRoomId: openVisit?.roomId || null,
         doctorInstructions: data.doctorNotes || data.treatmentPlan || '',
         dietPlan: data.dietaryInstructions || 'Follow Pathya-Apathya as prescribed.',
@@ -89,6 +90,18 @@ export async function createEmr(data, doctorId) {
       followupDate: data.followUpDate,
       planId: plan?.id,
       therapistId: openVisit?.therapistId,
+    })
+  }
+
+  if (data.therapyId) {
+    const assigner = getAll('users').find((row) => row.id === doctorId)
+    const prescribedTherapy = getAll('therapies').find((t) => t.id === data.therapyId)
+    notifyTherapyAssigned({
+      patientId: data.patientId,
+      therapy: prescribedTherapy,
+      assignerName: assigner?.name || 'your therapist',
+      plan,
+      emr: record,
     })
   }
 

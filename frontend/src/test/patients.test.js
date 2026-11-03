@@ -1,13 +1,24 @@
 import { describe, it, expect } from 'vitest'
 import { createPatient, listPatients, getPatient, submitPatientIntake, patientNeedsIntake, findPatientForUser } from '../services/patients.js'
+import { validEmergencyName, validEmergencyPhone } from '../utils/validation.js'
 import { getAll } from '../mocks/store.js'
-import { resetOtpStore, sendOtp, verifyOtp } from '../services/otp.js'
+import { peekLatestOtp, resetOtpStore, sendOtp, verifyOtp } from '../services/otp.js'
 
 async function withOtp(data, purpose) {
   resetOtpStore()
-  const sent = await sendOtp(data.phone, purpose)
-  const verified = await verifyOtp(data.phone, purpose, sent.debugOtp)
-  return { ...data, otpVerificationToken: verified.verificationToken }
+  await sendOtp(data.phone, purpose)
+  const verified = await verifyOtp(data.phone, purpose, peekLatestOtp(data.phone, purpose))
+  const emergencyPhone = data.emergencyPhone || '9001234568'
+  const emergencyName = data.emergencyName || 'Test Contact'
+  await sendOtp(emergencyPhone, 'emergency_contact')
+  const emergencyVerified = await verifyOtp(emergencyPhone, 'emergency_contact', peekLatestOtp(emergencyPhone, 'emergency_contact'))
+  return {
+    ...data,
+    emergencyName,
+    emergencyPhone,
+    otpVerificationToken: verified.verificationToken,
+    emergencyOtpVerificationToken: emergencyVerified.verificationToken,
+  }
 }
 
 const VALID_PATIENT = {
@@ -18,7 +29,8 @@ const VALID_PATIENT = {
   email: 'test@example.com',
   address: '1 Test Street, Mumbai',
   medicalHistory: '',
-  emergencyContact: 'Test Contact - 9001234568',
+  emergencyName: 'Test Contact',
+  emergencyPhone: '9001234568',
 }
 
 describe('Patient Service', () => {
@@ -66,6 +78,20 @@ describe('Patient Service', () => {
     expect(patient.email).toBe('')
   })
 
+  it('stores a composed emergency contact after OTP', async () => {
+    const patient = await createPatient(await withOtp(VALID_PATIENT, 'patient_register'), 'user-2')
+    expect(patient.emergencyContact).toBe('Test Contact - 9001234568')
+  })
+
+  it('rejects an invalid emergency contact name and phone', () => {
+    expect(validEmergencyName('A')).toBeTruthy()
+    expect(validEmergencyName('Jane Doe')).toBeNull()
+    expect(validEmergencyPhone('12345')).toBeTruthy()
+    expect(validEmergencyPhone('5123456789')).toBeTruthy()
+    expect(validEmergencyPhone('+91 8123456789')).toBeNull()
+    expect(validEmergencyPhone('9001234567', '9001234567')).toBeTruthy()
+  })
+
   it('requires intake for a patient without a linked record', () => {
     const user = { id: 'user-new', email: 'new.patient@ayursutra.dev', role: 'patient' }
     expect(patientNeedsIntake(user)).toBe(true)
@@ -81,7 +107,8 @@ describe('Patient Service', () => {
       dateOfBirth: '1991-03-08',
       gender: 'Female',
       email: 'intake@ayursutra.dev',
-      emergencyContact: 'Arun Iyer - 9123456781',
+      emergencyName: 'Arun Iyer',
+      emergencyPhone: '9123456781',
       chiefComplaint: 'Chronic lower back stiffness for 8 months',
       medicalHistory: '',
       allergies: '',
@@ -103,7 +130,8 @@ describe('Patient Service', () => {
       dateOfBirth: '1993-11-02',
       gender: 'Female',
       email: 'profile.link@example.com',
-      emergencyContact: 'Contact - 9123456700',
+      emergencyName: 'Contact',
+      emergencyPhone: '9123456700',
       chiefComplaint: 'Stress-related insomnia',
       medicalHistory: '',
       allergies: '',

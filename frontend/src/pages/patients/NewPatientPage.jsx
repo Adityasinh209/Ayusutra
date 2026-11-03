@@ -7,7 +7,7 @@ import Card from '../../components/Card.jsx'
 import FormField, { Input, Textarea, Select } from '../../components/FormField.jsx'
 import Button from '../../components/Button.jsx'
 import Alert from '../../components/Alert.jsx'
-import { required, validPhone, validEmail, validate } from '../../utils/validation.js'
+import { required, validPhone, validEmail, validEmergencyName, validEmergencyPhone, validate } from '../../utils/validation.js'
 import OtpVerification from '../../components/otp/OtpVerification.jsx'
 import PreviousTreatmentSection from '../../components/patient-history/PreviousTreatmentSection.jsx'
 import { persistDraftHistory } from '../../services/previousTreatments.js'
@@ -19,7 +19,8 @@ const INITIAL = {
   phone: '',
   email: '',
   address: '',
-  emergencyContact: '',
+  emergencyName: '',
+  emergencyPhone: '',
   prakriti: 'Vata-Pitta',
   vikriti: '',
   agniType: 'Vishama Agni (Irregular)',
@@ -37,11 +38,13 @@ export default function NewPatientPage() {
   const [submitError, setSubmitError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [otpToken, setOtpToken] = useState('')
+  const [emergencyOtpToken, setEmergencyOtpToken] = useState('')
   const [historyDrafts, setHistoryDrafts] = useState([])
 
   function set(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }))
     if (field === 'phone') setOtpToken('')
+    if (field === 'emergencyPhone') setEmergencyOtpToken('')
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: null }))
   }
 
@@ -54,7 +57,8 @@ export default function NewPatientPage() {
       phone: required(form.phone, 'Phone') ?? validPhone(form.phone),
       email: validEmail(form.email),
       address: required(form.address, 'Address'),
-      emergencyContact: required(form.emergencyContact, 'Emergency contact'),
+      emergencyName: validEmergencyName(form.emergencyName),
+      emergencyPhone: required(form.emergencyPhone, 'Emergency contact mobile') ?? validEmergencyPhone(form.emergencyPhone, form.phone),
     })
     if (hasError) { setErrors(errs); return }
 
@@ -66,7 +70,16 @@ export default function NewPatientPage() {
         setLoading(false)
         return
       }
-      const patient = await createPatient({ ...form, otpVerificationToken: otpToken }, user.id)
+      if (!emergencyOtpToken) {
+        setSubmitError('Verify the emergency contact mobile number before completing registration.')
+        setLoading(false)
+        return
+      }
+      const patient = await createPatient({
+        ...form,
+        otpVerificationToken: otpToken,
+        emergencyOtpVerificationToken: emergencyOtpToken,
+      }, user.id)
       await persistDraftHistory(patient.id, historyDrafts)
       navigate(`/patients/${patient.id}`)
     } catch (err) {
@@ -137,14 +150,39 @@ export default function NewPatientPage() {
                 error={errors.email}
               />
             </FormField>
-            <FormField label="Emergency Contact" error={errors.emergencyContact} required hint="Name & phone number">
+            <FormField label="Emergency Contact Name" error={errors.emergencyName} required>
               <Input
-                value={form.emergencyContact}
-                onChange={(e) => set('emergencyContact', e.target.value)}
-                placeholder="Name — 98XXXXXXXX"
-                error={errors.emergencyContact}
+                value={form.emergencyName}
+                onChange={(e) => set('emergencyName', e.target.value)}
+                placeholder="Contact name"
+                error={errors.emergencyName}
               />
             </FormField>
+            <FormField label="Emergency Contact Mobile" error={errors.emergencyPhone} required hint="Indian mobile with country code +91">
+              <div className="flex items-stretch gap-2">
+                <span className="inline-flex items-center rounded-xl border border-warm-300 bg-warm-50 px-3 text-sm font-semibold text-warm-700">+91</span>
+                <Input
+                  type="tel"
+                  value={form.emergencyPhone}
+                  onChange={(e) => set('emergencyPhone', e.target.value)}
+                  placeholder="10-digit mobile number"
+                  error={errors.emergencyPhone}
+                  maxLength={10}
+                  disabled={Boolean(emergencyOtpToken)}
+                />
+              </div>
+            </FormField>
+            <div className="sm:col-span-2">
+              <OtpVerification
+                mobile={form.emergencyPhone}
+                purpose="emergency_contact"
+                verifiedToken={emergencyOtpToken}
+                onVerified={setEmergencyOtpToken}
+                onChangeNumber={() => setEmergencyOtpToken('')}
+                heading="Verify emergency contact mobile"
+                hint="A 6-digit OTP will be sent to the emergency contact number. The code expires in 5 minutes."
+              />
+            </div>
             <div className="sm:col-span-2">
               <FormField label="Residential Address" error={errors.address} required>
                 <Input
@@ -233,7 +271,7 @@ export default function NewPatientPage() {
         <PreviousTreatmentSection draftRecords={historyDrafts} onDraftChange={setHistoryDrafts} />
 
         <div className="flex gap-3">
-          <Button type="submit" loading={loading} disabled={!otpToken}>
+          <Button type="submit" loading={loading} disabled={!otpToken || !emergencyOtpToken}>
             Save &amp; Open Profile
           </Button>
           <Button type="button" variant="secondary" onClick={() => navigate('/patients')}>

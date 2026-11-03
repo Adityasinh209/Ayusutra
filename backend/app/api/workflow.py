@@ -180,9 +180,12 @@ def send_code(body: OtpSendBody, user: User = Depends(get_current_user), db: Ses
         raise HTTPException(403, "Only an administrator can verify staff registrations.")
     if body.purpose == "patient_register" and user.role not in STAFF:
         raise HTTPException(403, "Not allowed.")
-    ignore_patient = user.patient_id if body.purpose == "patient_intake" else None
-    ignore_user = user.id if body.purpose == "patient_intake" else None
-    assert_phone_available(db, phone, ignore_patient_id=ignore_patient, ignore_user_id=ignore_user)
+    if body.purpose == "emergency_contact" and user.role not in STAFF and user.role != "patient":
+        raise HTTPException(403, "Not allowed.")
+    if body.purpose != "emergency_contact":
+        ignore_patient = user.patient_id if body.purpose == "patient_intake" else None
+        ignore_user = user.id if body.purpose == "patient_intake" else None
+        assert_phone_available(db, phone, ignore_patient_id=ignore_patient, ignore_user_id=ignore_user)
     return send_otp(db, phone, body.purpose)
 
 
@@ -192,6 +195,8 @@ def verify_code(body: OtpVerifyBody, user: User = Depends(get_current_user), db:
     if body.purpose in {"therapist_register", "receptionist_register"} and user.role != "admin":
         raise HTTPException(403, "Not allowed.")
     if body.purpose == "patient_register" and user.role not in STAFF:
+        raise HTTPException(403, "Not allowed.")
+    if body.purpose == "emergency_contact" and user.role not in STAFF and user.role != "patient":
         raise HTTPException(403, "Not allowed.")
     return verify_otp(db, body.mobile, body.purpose, body.otp)
 

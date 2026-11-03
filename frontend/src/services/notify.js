@@ -29,3 +29,27 @@ export function notifySessionScheduled(appointment) {
   addItem('notifications', record)
   return record
 }
+
+export function notifyTherapyAssigned({ patientId, therapy, assignerName, plan, emr }) {
+  const patient = getById('patients', patientId)
+  const therapyName = therapy?.name || plan?.procedureName || 'Panchakarma therapy'
+  const therapistName = assignerName || 'your therapist'
+  const details = plan?.doctorInstructions || emr?.doctorNotes || emr?.treatmentPlan || plan?.dietPlan || 'Please follow the prescribed Panchakarma protocol.'
+  const params = new URLSearchParams()
+  if (therapy?.id) params.set('therapyId', therapy.id)
+  if (plan?.id) params.set('planId', plan.id)
+  const bookPath = `/scheduling${params.toString() ? `?${params.toString()}` : ''}`
+  const record = {
+    id: generateId('notify'),
+    type: 'therapy_assigned',
+    patientId,
+    planId: plan?.id || null,
+    to: [patient?.email].filter(Boolean),
+    subject: `Therapy assigned: ${therapyName}`,
+    body: `${patient?.fullName || 'Patient'} was assigned ${therapyName} by ${therapistName}. ${details} Book: ${bookPath}`,
+    bookPath,
+    createdAt: new Date().toISOString(),
+  }
+  addItem('notifications', record)
+  return record
+}

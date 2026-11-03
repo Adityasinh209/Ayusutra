@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth.jsx'
-import { listAppointments, getAppointmentsForPatient, cancelAppointment, acceptAppointment, declineAppointment } from '../../services/appointments.js'
+import { listAppointments, getAppointmentsForPatient, cancelAppointment, acceptAppointment, declineAppointment, requestAppointmentCancel } from '../../services/appointments.js'
 import { listPatients, getPatient } from '../../services/patients.js'
 import { listTherapies } from '../../services/therapies.js'
 import { listTherapists } from '../../services/therapists.js'
@@ -22,6 +22,7 @@ export default function AppointmentsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [cancelTarget, setCancelTarget] = useState(null)
+  const [requestTarget, setRequestTarget] = useState(null)
   const [cancelling, setCancelling] = useState(false)
   const [statusFilter, setStatusFilter] = useState('all')
   const [stageFilter, setStageFilter] = useState('all')
@@ -77,6 +78,22 @@ export default function AppointmentsPage() {
         prev.map((a) => (a.id === cancelTarget.id ? { ...a, status: 'Cancelled' } : a)),
       )
       setCancelTarget(null)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setCancelling(false)
+    }
+  }
+
+  async function handleRequestCancel() {
+    if (!requestTarget) return
+    setCancelling(true)
+    try {
+      const updated = await requestAppointmentCancel(requestTarget.id)
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === requestTarget.id ? updated : a)),
+      )
+      setRequestTarget(null)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -167,7 +184,17 @@ export default function AppointmentsPage() {
     {
       key: 'status',
       label: 'Status',
-      render: (r) => <Badge label={r.status} />,
+      render: (r) => (
+        <div className="space-y-1">
+          <Badge label={r.status} />
+          {r.cancellationRequest === 'Requested' && (
+            <span className="block text-[10px] font-medium text-amber-800">Cancellation requested</span>
+          )}
+          {r.cancellationRequest === 'Rejected' && r.status !== 'Cancelled' && (
+            <span className="block text-[10px] font-medium text-stone-600">Cancellation declined</span>
+          )}
+        </div>
+      ),
     },
     {
       key: 'observations',
@@ -182,64 +209,73 @@ export default function AppointmentsPage() {
         </div>
       ),
     },
-    ...(user?.role !== 'patient'
-      ? [
-          {
-            key: 'actions',
-            label: '',
-            render: (r) => (
-              <div className="flex items-center gap-1.5">
-                {(user?.role === 'receptionist' || user?.role === 'admin') && r.status === 'Pending Confirmation' && (
-                  <>
-                    <Button
-                      size="xs"
-                      onClick={async (e) => {
-                        e.stopPropagation()
-                        try {
-                          const updated = await acceptAppointment(r.id)
-                          setAppointments((prev) => prev.map((row) => (row.id === r.id ? updated : row)))
-                        } catch (err) {
-                          setError(err.message)
-                        }
-                      }}
-                    >
-                      Confirm
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant="secondary"
-                      onClick={async (e) => {
-                        e.stopPropagation()
-                        try {
-                          const updated = await declineAppointment(r.id)
-                          setAppointments((prev) => prev.map((row) => (row.id === r.id ? updated : row)))
-                        } catch (err) {
-                          setError(err.message)
-                        }
-                      }}
-                    >
-                      Decline
-                    </Button>
-                  </>
-                )}
-                {r.status !== 'Cancelled' && r.status !== 'Completed' && r.status !== 'Declined' ? (
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    className="text-red-500 hover:text-red-700"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setCancelTarget(r)
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                ) : null}
-              </div>
-            ),
-          },
-        ]
-      : []),
+    {
+      key: 'actions',
+      label: '',
+      render: (r) => (
+        <div className="flex items-center gap-1.5">
+          {user?.role !== 'patient' && (user?.role === 'receptionist' || user?.role === 'admin') && r.status === 'Pending Confirmation' && (
+            <>
+              <Button
+                size="xs"
+                onClick={async (e) => {
+                  e.stopPropagation()
+                  try {
+                    const updated = await acceptAppointment(r.id)
+                    setAppointments((prev) => prev.map((row) => (row.id === r.id ? updated : row)))
+                  } catch (err) {
+                    setError(err.message)
+                  }
+                }}
+              >
+                Confirm
+              </Button>
+              <Button
+                size="xs"
+                variant="secondary"
+                onClick={async (e) => {
+                  e.stopPropagation()
+                  try {
+                    const updated = await declineAppointment(r.id)
+                    setAppointments((prev) => prev.map((row) => (row.id === r.id ? updated : row)))
+                  } catch (err) {
+                    setError(err.message)
+                  }
+                }}
+              >
+                Decline
+              </Button>
+            </>
+          )}
+          {user?.role !== 'patient' && r.status !== 'Cancelled' && r.status !== 'Completed' && r.status !== 'Declined' ? (
+            <Button
+              size="xs"
+              variant="ghost"
+              className="text-red-500 hover:text-red-700"
+              onClick={(e) => {
+                e.stopPropagation()
+                setCancelTarget(r)
+              }}
+            >
+              Cancel
+            </Button>
+          ) : null}
+          {user?.role === 'patient' && ['Pending Confirmation', 'Scheduled', 'Confirmed'].includes(r.status) && r.cancellationRequest !== 'Requested' ? (
+            <Button
+              size="xs"
+              variant="ghost"
+              className="text-red-500 hover:text-red-700"
+              onClick={(e) => {
+                e.stopPropagation()
+                setRequestTarget(r)
+              }}
+            >
+              Request Cancellation
+            </Button>
+          ) : null}
+        </div>
+      ),
+    },
   ]
 
   if (loading) return <PageSpinner />
@@ -308,6 +344,15 @@ export default function AppointmentsPage() {
         title="Cancel Therapy Session"
         message={`Are you sure you want to cancel this ${therapies[cancelTarget?.therapyId]?.name || 'therapy'} session for ${cancelTarget ? patients[cancelTarget.patientId]?.fullName : ''}?`}
         confirmLabel="Confirm Cancellation"
+      />
+      <ConfirmModal
+        open={!!requestTarget}
+        onClose={() => setRequestTarget(null)}
+        onConfirm={handleRequestCancel}
+        loading={cancelling}
+        title="Request session cancellation"
+        message="Your request will be sent to reception. The session stays scheduled until reception approves or declines it."
+        confirmLabel="Send request"
       />
     </div>
   )

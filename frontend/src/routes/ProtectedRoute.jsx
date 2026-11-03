@@ -2,7 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { PageSpinner } from '../components/Spinner.jsx'
 import { patientNeedsIntake } from '../services/patients.js'
-import { homePathForUser } from '../auth/postAuthRedirect.js'
+import { homePathForUser, rememberReturnTo } from '../auth/postAuthRedirect.js'
 
 export default function ProtectedRoute({ children, roles }) {
   const { user, isLoaded } = useAuth()
@@ -13,6 +13,9 @@ export default function ProtectedRoute({ children, roles }) {
   }
 
   if (!user) {
+    if (location.pathname !== '/intake') {
+      rememberReturnTo(`${location.pathname}${location.search || ''}`)
+    }
     const loginTo = location.pathname === '/intake' ? '/sign-in?intent=book' : '/sign-in'
     return <Navigate to={loginTo} state={{ from: location }} replace />
   }

@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { postAuthRedirect, rememberAuthIntent, clearAuthIntent } from '../auth/postAuthRedirect.js'
+import { postAuthRedirect, rememberAuthIntent, clearAuthIntent, rememberReturnTo, clearReturnTo } from '../auth/postAuthRedirect.js'
 
 describe('postAuthRedirect', () => {
   beforeEach(() => {
     sessionStorage.clear()
     clearAuthIntent()
+    clearReturnTo()
   })
 
   it('sends patients who still need intake to /intake', () => {
@@ -26,5 +27,11 @@ describe('postAuthRedirect', () => {
   it('sends administrators to the dashboard', () => {
     const user = { role: 'admin' }
     expect(postAuthRedirect(user, { demo: true })).toBe('/dashboard')
+  })
+
+  it('returns patients to the booking link after sign-in', () => {
+    const user = { role: 'patient', patientId: 'patient-1', email: 'patient@ayursutra.dev' }
+    rememberReturnTo('/scheduling?therapyId=therapy-1&planId=plan-1')
+    expect(postAuthRedirect(user)).toBe('/scheduling?therapyId=therapy-1&planId=plan-1')
   })
 })

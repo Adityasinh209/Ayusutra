@@ -2,7 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import Button from '../Button.jsx'
 import { canonicalPhone, sendOtp, verifyOtp } from '../../services/otp.js'
 
-export default function OtpVerification({ mobile, purpose, verifiedToken, onVerified, onChangeNumber }) {
+export default function OtpVerification({
+  mobile,
+  purpose,
+  verifiedToken,
+  onVerified,
+  onChangeNumber,
+  heading = 'Verify mobile number',
+  hint = 'A 6-digit OTP will be sent to this mobile number. The code expires in 5 minutes.',
+}) {
   const [digits, setDigits] = useState(['', '', '', '', '', ''])
   const [sent, setSent] = useState(null)
   const [error, setError] = useState('')
@@ -70,9 +78,8 @@ export default function OtpVerification({ mobile, purpose, verifiedToken, onVeri
 
   return (
     <div className="rounded-2xl border border-warm-200 bg-warm-50 p-4">
-      <p className="text-sm font-semibold text-warm-800">Verify mobile number</p>
-      <p className="mt-1 text-xs text-warm-500">Registration stays incomplete until this 6-digit OTP is verified. Demo code: 123456.</p>
-      {sent?.debugOtp && <p className="mt-2 text-xs font-semibold text-green-700">Demo OTP: {sent.debugOtp}</p>}
+      <p className="text-sm font-semibold text-warm-800">{heading}</p>
+      <p className="mt-1 text-xs text-warm-500">{hint}</p>
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
       {!sent ? (
         <Button type="button" className="mt-3" disabled={!ready || busy} onClick={requestCode}>Send OTP</Button>

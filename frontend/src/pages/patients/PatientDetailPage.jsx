@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth.jsx'
-import { getPatient } from '../../services/patients.js'
+import { getPatient, deleteMyAccount } from '../../services/patients.js'
 import { getEmrForPatient } from '../../services/emr.js'
 import { getAppointmentsForPatient } from '../../services/appointments.js'
 import { getPlansForPatient, pickActivePlan, updatePlanStage } from '../../services/plans.js'
@@ -12,6 +12,7 @@ import PageHeader from '../../components/PageHeader.jsx'
 import Card, { CardHeader } from '../../components/Card.jsx'
 import Badge from '../../components/Badge.jsx'
 import Button from '../../components/Button.jsx'
+import { ConfirmModal } from '../../components/Modal.jsx'
 import { PageSpinner } from '../../components/Spinner.jsx'
 import Alert from '../../components/Alert.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
@@ -21,7 +22,7 @@ import PreviousTreatmentSection from '../../components/patient-history/PreviousT
 export default function PatientDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const [patient, setPatient] = useState(null)
   const [emrRecords, setEmrRecords] = useState([])
   const [appointments, setAppointments] = useState([])
@@ -30,6 +31,8 @@ export default function PatientDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [advancingStage, setAdvancingStage] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const isPatientViewingOther = user?.role === 'patient' && user?.patientId && user.patientId !== id
 
@@ -89,6 +92,20 @@ export default function PatientDetailPage() {
       setError(e.message)
     } finally {
       setAdvancingStage(false)
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleting(true)
+    try {
+      await deleteMyAccount(id)
+      setDeleteOpen(false)
+      await logout()
+    } catch (e) {
+      setError(e.message)
+      setDeleteOpen(false)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -378,6 +395,33 @@ export default function PatientDetailPage() {
           </div>
         )}
       </Card>
+
+      {user.role === 'patient' && user.patientId === id && (
+        <Card>
+          <CardHeader title="Delete My Account" subtitle="Disable login after treatments are complete. Clinical records are retained." />
+          <p className="text-xs text-stone-600 mb-3">
+            Your assessments, medical records, appointments, and treatment history stay on file for medical and legal retention. You will not be able to sign in after deletion.
+          </p>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-red-500 hover:text-red-700"
+            onClick={() => setDeleteOpen(true)}
+          >
+            Delete My Account
+          </Button>
+        </Card>
+      )}
+
+      <ConfirmModal
+        open={deleteOpen}
+        onClose={() => !deleting && setDeleteOpen(false)}
+        onConfirm={handleDeleteAccount}
+        loading={deleting}
+        title="Delete your account?"
+        message="This disables your login permanently. Your medical records, assessments, and treatment history are retained for clinical and legal requirements and are not erased. You will be signed out."
+        confirmLabel="Delete account"
+      />
     </div>
   )
 }

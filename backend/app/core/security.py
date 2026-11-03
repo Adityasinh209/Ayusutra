@@ -40,6 +40,8 @@ def user_from_claims(db: Session, claims: dict) -> User:
         user = db.get(User, claims["test_user_id"])
         if user is None:
             raise HTTPException(status_code=401, detail="Unknown user.")
+        if not user.active:
+            raise HTTPException(status_code=401, detail="Inactive user.")
         return user
     sub = claims.get("sub") or ""
     email = (claims.get("email") or claims.get("primary_email") or "").lower()

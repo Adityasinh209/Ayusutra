@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createEmr, getEmrForPatient } from '../services/emr.js'
+import { getAll } from '../mocks/store.js'
 
 const VALID_EMR = {
   patientId: 'patient-1',
@@ -32,6 +33,14 @@ describe('EMR Service', () => {
     const records = await getEmrForPatient('patient-1')
     expect(records.length).toBeGreaterThan(0)
     expect(records.every((r) => r.patientId === 'patient-1')).toBe(true)
+  })
+
+  it('records an assignment notification with a booking path', async () => {
+    const record = await createEmr(VALID_EMR, 'user-1')
+    const mail = getAll('notifications').find((row) => row.type === 'therapy_assigned' && row.planId === record.planId)
+    expect(mail).toBeTruthy()
+    expect(mail.body).toContain('Abhyanga')
+    expect(mail.bookPath).toContain('therapyId=therapy-1')
   })
 
   it('returns empty array for patient with no EMR', async () => {

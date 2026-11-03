@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { listPatients, getPatient, findPatientForUser } from '../services/patients.js'
-import { listAppointments, getAppointmentsForPatient, acceptAppointment, declineAppointment } from '../services/appointments.js'
+import { listAppointments, getAppointmentsForPatient, acceptAppointment, declineAppointment, cancelAppointment, requestAppointmentCancel, approveAppointmentCancel, rejectAppointmentCancel } from '../services/appointments.js'
 import { listPlans, getPlansForPatient, pickActivePlan } from '../services/plans.js'
 import { remoteReady } from '../services/http.js'
 import { listTherapists } from '../services/therapists.js'
@@ -11,11 +11,12 @@ import { listTherapies } from '../services/therapies.js'
 import Card, { CardHeader } from '../components/Card.jsx'
 import Badge from '../components/Badge.jsx'
 import Button from '../components/Button.jsx'
+import { ConfirmModal } from '../components/Modal.jsx'
 import TextReveal from '../components/TextReveal.jsx'
 import { PageSpinner } from '../components/Spinner.jsx'
 import { formatDate, formatTime, todayISODate } from '../utils/date.js'
 import { listBills } from '../services/billing.js'
-import { listFollowups } from '../services/followups.js'
+import { listFollowups, pickCurrentFollowup } from '../services/followups.js'
 
 
 
@@ -81,6 +82,7 @@ export default function DashboardPage() {
           const upcomingAppts = myAppts.filter((a) => a.status !== 'Cancelled' && a.status !== 'Declined' && a.date >= todayISODate())
           const nextAppt = upcomingAppts.find((a) => ['Scheduled', 'Confirmed', 'Pending Confirmation'].includes(a.status))
           const completedCount = myAppts.filter((a) => a.status === 'Completed').length
+          const currentFollowup = pickCurrentFollowup(myFollowups, activePlan)
 
           setData({
             profile: patientProfile,
@@ -90,7 +92,8 @@ export default function DashboardPage() {
             completedCount,
             totalCount: activePlan?.totalSessions || myAppts.length || 0,
             bill: myBills.find((item) => item.paymentStatus === 'Pending' || item.paymentStatus === 'Partial') || myBills[0] || null,
-            followup: myFollowups[0] || null,
+            followup: currentFollowup.followup,
+            followupDate: currentFollowup.followupDate,
           })
           setLoading(false)
           return
@@ -127,6 +130,9 @@ export default function DashboardPage() {
         const pendingBookings = appointments
           .filter((a) => a.status === 'Pending Confirmation')
           .sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`))
+        const cancellationRequests = appointments
+          .filter((a) => a.cancellationRequest === 'Requested' && a.status !== 'Cancelled' && a.status !== 'Declined')
+          .sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`))
 
         setData({
           activeTreatmentsCount: activeTreatments.length,
@@ -143,6 +149,7 @@ export default function DashboardPage() {
           roomsList: rooms.slice(0, 4),
           bookedRoomIds,
           pendingBookings,
+          cancellationRequests,
         })
         setLoading(false)
       } catch (err) {
@@ -194,20 +201,40 @@ export default function DashboardPage() {
 // 1. RECEPTIONIST DASHBOARD
 // ─────────────────────────────────────────────────────────────────────────────
 function ReceptionistDashboard({ user, data, meta, navigate }) {
-  const { todaySessionsCount, roomUtilization, totalPatientsCount, todaySessions, roomsList, bookedRoomIds, pendingBookings = [] } = data
+  const { todaySessionsCount, roomUtilization, totalPatientsCount, todaySessions, roomsList, bookedRoomIds, pendingBookings = [], cancellationRequests = [] } = data
   const [bookingError, setBookingError] = useState(null)
   const [actingId, setActingId] = useState(null)
+  const [cancelTarget, setCancelTarget] = useState(null)
+  const [cancelling, setCancelling] = useState(false)
 
   async function handleBooking(id, action) {
     setActingId(id)
     setBookingError(null)
     try {
       if (action === 'confirm') await acceptAppointment(id)
+      else if (action === 'approve-cancel') await approveAppointmentCancel(id)
+      else if (action === 'reject-cancel') await rejectAppointmentCancel(id)
       else await declineAppointment(id)
+      window.dispatchEvent(new Event('ayursutra:data'))
     } catch (err) {
       setBookingError(err.message)
     } finally {
       setActingId(null)
+    }
+  }
+
+  async function handleCancel() {
+    if (!cancelTarget) return
+    setCancelling(true)
+    setBookingError(null)
+    try {
+      await cancelAppointment(cancelTarget.id)
+      setCancelTarget(null)
+      window.dispatchEvent(new Event('ayursutra:data'))
+    } catch (err) {
+      setBookingError(err.message)
+    } finally {
+      setCancelling(false)
     }
   }
 
@@ -268,6 +295,39 @@ function ReceptionistDashboard({ user, data, meta, navigate }) {
               </Card>
             </TextReveal>
           )}
+          {cancellationRequests.length > 0 && (
+            <TextReveal delay={0.02}>
+              <Card>
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-green-100">
+                  <div>
+                    <h3 className="text-[16.5px] font-bold text-green-900">Cancellation requests</h3>
+                    <p className="text-[14.5px] text-green-700/70">Approve to cancel the session, or reject to keep it scheduled</p>
+                  </div>
+                </div>
+                <div className="space-y-2.5">
+                  {cancellationRequests.map((a) => {
+                    const patient = meta.patients[a.patientId]
+                    const therapy = meta.therapies[a.therapyId]
+                    const therapist = meta.therapists[a.therapistId]
+                    return (
+                      <div key={a.id} className="p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white" style={{ borderColor: '#fde68a' }}>
+                        <div className="space-y-0.5">
+                          <span className="font-bold text-[16.5px] text-green-900">{patient?.fullName || 'Patient'}</span>
+                          <p className="text-[14.5px] text-warm-600">
+                            {therapy?.name} · {formatDate(a.date)} {formatTime(a.startTime)} · {therapist?.name || 'Therapist'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" disabled={actingId === a.id} onClick={() => handleBooking(a.id, 'approve-cancel')}>Approve</Button>
+                          <Button size="sm" variant="secondary" disabled={actingId === a.id} onClick={() => handleBooking(a.id, 'reject-cancel')}>Reject</Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </Card>
+            </TextReveal>
+          )}
           <TextReveal delay={0.05}>
             <Card>
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-green-100">
@@ -288,7 +348,12 @@ function ReceptionistDashboard({ user, data, meta, navigate }) {
                         <span className="font-bold text-[16.5px] text-green-900">{patient?.fullName || 'Patient'}</span>
                         <p className="text-[14.5px] text-warm-600">{therapy?.name} · {formatTime(a.startTime)} · {room?.name || 'Shala'}</p>
                       </div>
-                      <Badge label={a.status} />
+                      <div className="flex items-center gap-2">
+                        <Badge label={a.status} />
+                        {['Pending Confirmation', 'Scheduled', 'Confirmed'].includes(a.status) && (
+                          <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700" onClick={() => setCancelTarget(a)}>Cancel</Button>
+                        )}
+                      </div>
                     </div>
                   )
                 })}
@@ -333,6 +398,15 @@ function ReceptionistDashboard({ user, data, meta, navigate }) {
 
         </div>
       </div>
+      <ConfirmModal
+        open={!!cancelTarget}
+        onClose={() => setCancelTarget(null)}
+        onConfirm={handleCancel}
+        loading={cancelling}
+        title="Cancel Therapy Session"
+        message={`Cancel this ${meta.therapies[cancelTarget?.therapyId]?.name || 'therapy'} session for ${cancelTarget ? meta.patients[cancelTarget.patientId]?.fullName : ''}?`}
+        confirmLabel="Confirm Cancellation"
+      />
     </div>
   )
 }
@@ -346,10 +420,28 @@ function TherapistDashboard({ user, data, meta, navigate }) {
     activeTreatmentsCount, pradhanaToday, upcomingFollowUps,
     activePlans, todaySessions,
   } = data
+  const [cancelTarget, setCancelTarget] = useState(null)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelError, setCancelError] = useState(null)
 
   // Therapists see their own assigned sessions; admin/doctor see today's full queue
   const isTherapist = user?.role === 'therapist'
   const sessionsList = isTherapist ? therapistSessions : (todaySessions || therapistSessions)
+
+  async function handleCancel() {
+    if (!cancelTarget) return
+    setCancelling(true)
+    setCancelError(null)
+    try {
+      await cancelAppointment(cancelTarget.id)
+      setCancelTarget(null)
+      window.dispatchEvent(new Event('ayursutra:data'))
+    } catch (err) {
+      setCancelError(err.message)
+    } finally {
+      setCancelling(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -393,6 +485,7 @@ function TherapistDashboard({ user, data, meta, navigate }) {
                 <Button size="sm" variant="ghost" onClick={() => navigate('/therapist/sessions')}>Open Full Log</Button>
               </div>
               <div className="space-y-2.5">
+                {cancelError && <p className="text-sm text-red-700 mb-2">{cancelError}</p>}
                 {sessionsList.length === 0 ? (
                   <p className="text-[14.5px] py-6 text-center text-green-700/60">{isTherapist ? 'No upcoming sessions assigned yet.' : 'No therapy sessions scheduled today.'}</p>
                 ) : (
@@ -417,6 +510,9 @@ function TherapistDashboard({ user, data, meta, navigate }) {
                         <div className="flex items-center gap-2">
                           <Badge label={a.treatmentStage || 'Purva Karma'} />
                           <Badge label={a.status} />
+                          {isTherapist && ['Pending Confirmation', 'Scheduled', 'Confirmed'].includes(a.status) && (
+                            <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700" onClick={() => setCancelTarget(a)}>Cancel</Button>
+                          )}
                         </div>
                       </div>
                     )
@@ -508,6 +604,15 @@ function TherapistDashboard({ user, data, meta, navigate }) {
           </TextReveal>
         </div>
       </div>
+      <ConfirmModal
+        open={!!cancelTarget}
+        onClose={() => setCancelTarget(null)}
+        onConfirm={handleCancel}
+        loading={cancelling}
+        title="Cancel Therapy Session"
+        message={`Cancel this ${meta.therapies[cancelTarget?.therapyId]?.name || 'therapy'} session for ${cancelTarget ? meta.patients[cancelTarget.patientId]?.fullName : ''}?`}
+        confirmLabel="Confirm Cancellation"
+      />
     </div>
   )
 }
@@ -515,9 +620,40 @@ function TherapistDashboard({ user, data, meta, navigate }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // 3. PATIENT DASHBOARD
 // ─────────────────────────────────────────────────────────────────────────────
+function assignedTherapyForPlan(plan, therapies) {
+  if (!plan) return null
+  const list = Object.values(therapies || {})
+  return list.find((therapy) => therapy.name === plan.procedureName || therapy.name === plan.primaryPanchakarma)
+    || list.find((therapy) => String(plan.procedureName || '').toLowerCase().includes(String(therapy.name || '').toLowerCase()))
+    || null
+}
+
 function PatientDashboard({ user, data, meta, navigate }) {
-  const { profile, activePlan, nextAppt, completedCount, totalCount, bill, followup } = data
-  const followupDate = followup?.followupDate || activePlan?.followUpDate
+  const { profile, activePlan, nextAppt, completedCount, totalCount, bill, followup, followupDate: loadedFollowupDate } = data
+  const [requestOpen, setRequestOpen] = useState(false)
+  const [requesting, setRequesting] = useState(false)
+  const [requestError, setRequestError] = useState(null)
+
+  async function handleRequestCancel() {
+    if (!nextAppt) return
+    setRequesting(true)
+    setRequestError(null)
+    try {
+      await requestAppointmentCancel(nextAppt.id)
+      setRequestOpen(false)
+      window.dispatchEvent(new Event('ayursutra:data'))
+    } catch (err) {
+      setRequestError(err.message)
+    } finally {
+      setRequesting(false)
+    }
+  }
+  const followupDate = loadedFollowupDate || activePlan?.followUpDate || followup?.followupDate
+  const assignedTherapy = assignedTherapyForPlan(activePlan, meta.therapies)
+  const bookPath = assignedTherapy && activePlan
+    ? `/scheduling?therapyId=${encodeURIComponent(assignedTherapy.id)}&planId=${encodeURIComponent(activePlan.id)}`
+    : '/scheduling'
+  const assignerName = meta.therapists[activePlan?.assignedTherapistId]?.name || 'Your therapist'
   const patientPath = `/patients/${profile?.id || user.patientId}`
   const sessionTotal = activePlan?.totalSessions || totalCount || 0
   const sessionDone = activePlan?.completedSessions ?? completedCount ?? 0
@@ -552,9 +688,36 @@ function PatientDashboard({ user, data, meta, navigate }) {
                   <span className="text-[14.5px] font-semibold uppercase tracking-wider block mb-1 text-green-700">Next Scheduled Treatment</span>
                   <h3 className="text-[20.5px] font-bold text-green-900">{meta.therapies[nextAppt.therapyId]?.name || 'Therapy Session'}</h3>
                   <p className="text-[14.5px] mt-1 text-green-800/70">{formatDate(nextAppt.date)} at {formatTime(nextAppt.startTime)} · {meta.rooms[nextAppt.roomId]?.name || 'Shala'}</p>
+                  {requestError && <p className="text-sm text-red-700 mt-2">{requestError}</p>}
+                  {nextAppt.cancellationRequest === 'Requested' && (
+                    <p className="text-[13.5px] font-medium text-amber-800 mt-2">Cancellation requested — waiting for reception</p>
+                  )}
+                  {nextAppt.cancellationRequest === 'Rejected' && (
+                    <p className="text-[13.5px] font-medium text-stone-700 mt-2">Cancellation declined. Your session remains scheduled.</p>
+                  )}
                 </div>
-                <Badge label={nextAppt.status} />
+                <div className="flex flex-col items-end gap-2">
+                  <Badge label={nextAppt.status} />
+                  {nextAppt.cancellationRequest !== 'Requested' && (
+                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700" onClick={() => setRequestOpen(true)}>
+                      Request Cancellation
+                    </Button>
+                  )}
+                </div>
               </div>
+            </TextReveal>
+          )}
+
+          {activePlan && assignedTherapy && (
+            <TextReveal delay={0.08}>
+              <Card>
+                <CardHeader title="Assigned Assessment / Therapy" subtitle="Your therapist prescribed this procedure" />
+                <div className="space-y-3 text-sm text-green-900">
+                  <p><strong>{assignerName}</strong> assigned <strong>{assignedTherapy.name}</strong>.</p>
+                  <p className="text-green-900/80">{activePlan.doctorInstructions || activePlan.dietPlan || 'Please follow the prescribed Panchakarma protocol.'}</p>
+                  <Button onClick={() => navigate(bookPath)}>Book a Session</Button>
+                </div>
+              </Card>
             </TextReveal>
           )}
 
@@ -582,7 +745,7 @@ function PatientDashboard({ user, data, meta, navigate }) {
               <div className="flex flex-col gap-2">
                 <QuickNavButton label="My Therapy Sessions" to="/appointments" navigate={navigate} />
                 <QuickNavButton label="Full Constitutional Profile" to={patientPath} navigate={navigate} />
-                <QuickNavButton label="Book a Session" to="/scheduling" navigate={navigate} />
+                <QuickNavButton label="Book a Session" to={bookPath} navigate={navigate} />
                 <QuickNavButton label="Ask AyurSutra Assistant" to="/assistant" navigate={navigate} />
               </div>
             </Card>
@@ -600,6 +763,15 @@ function PatientDashboard({ user, data, meta, navigate }) {
 
         </div>
       </div>
+      <ConfirmModal
+        open={requestOpen}
+        onClose={() => setRequestOpen(false)}
+        onConfirm={handleRequestCancel}
+        loading={requesting}
+        title="Request session cancellation"
+        message="Your request will be sent to reception. The session stays scheduled until reception approves or declines it."
+        confirmLabel="Send request"
+      />
     </div>
   )
 }

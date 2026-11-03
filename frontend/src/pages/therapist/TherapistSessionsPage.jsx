@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth.jsx'
-import { getAppointmentsForTherapist, completeAppointment, listAppointments } from '../../services/appointments.js'
+import { getAppointmentsForTherapist, completeAppointment, listAppointments, cancelAppointment } from '../../services/appointments.js'
 import { getPatient } from '../../services/patients.js'
 import { getTherapy } from '../../services/therapies.js'
 import { getRoom } from '../../services/rooms.js'
@@ -27,7 +27,9 @@ export default function TherapistSessionsPage() {
   const [observations, setObservations] = useState('')
   const [doctorRemarks, setDoctorRemarks] = useState('')
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [cancelOpen, setCancelOpen] = useState(false)
   const [completing, setCompleting] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
 
@@ -112,6 +114,25 @@ export default function TherapistSessionsPage() {
   }
 
   const canComplete = selected && ['Scheduled', 'Confirmed'].includes(selected.status)
+  const canCancel = selected && ['Pending Confirmation', 'Scheduled', 'Confirmed'].includes(selected.status)
+
+  async function handleCancel() {
+    if (!selected) return
+    setCancelling(true)
+    try {
+      await cancelAppointment(selected.id)
+      setCancelOpen(false)
+      setSuccess('Session cancelled.')
+      setSelected(null)
+      setDetail(null)
+      await loadSessions()
+    } catch (e) {
+      setError(e.message)
+      setCancelOpen(false)
+    } finally {
+      setCancelling(false)
+    }
+  }
 
   if (loading) return <PageSpinner />
 
@@ -182,6 +203,11 @@ export default function TherapistSessionsPage() {
                     {selected.treatmentStage || 'Purva Karma'}
                   </span>
                   <Badge label={selected.status} />
+                  {canCancel && (
+                    <Button size="xs" variant="ghost" className="text-red-500 hover:text-red-700" onClick={() => setCancelOpen(true)}>
+                      Cancel
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -284,6 +310,15 @@ export default function TherapistSessionsPage() {
         title="Finalize Panchakarma Session"
         message={`Mark this ${detail?.therapy?.name ?? 'therapy'} session for ${detail?.patient?.fullName ?? 'the patient'} as completed?`}
         confirmLabel="Confirm Completion"
+      />
+      <ConfirmModal
+        open={cancelOpen}
+        onClose={() => !cancelling && setCancelOpen(false)}
+        onConfirm={handleCancel}
+        loading={cancelling}
+        title="Cancel Therapy Session"
+        message={`Cancel this ${detail?.therapy?.name ?? 'therapy'} session for ${detail?.patient?.fullName ?? 'the patient'}?`}
+        confirmLabel="Confirm Cancellation"
       />
     </div>
   )

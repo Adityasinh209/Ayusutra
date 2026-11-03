@@ -3,6 +3,8 @@ import { addItem, getAll } from '../mocks/store.js'
 import { confirmAppointment } from '../services/appointments.js'
 import { createEmr } from '../services/emr.js'
 import { pickOpenAppointment } from '../services/continuity.js'
+import { createFollowup, deleteFollowup, pickCurrentFollowup, sendFollowupReminder } from '../services/followups.js'
+import { getPlansForPatient, pickActivePlan } from '../services/plans.js'
 
 describe('automatic bill, follow-up, and visit link', () => {
   it('opens a pending bill when a visit is booked', async () => {
@@ -45,5 +47,37 @@ describe('automatic bill, follow-up, and visit link', () => {
     expect(bill.paymentStatus).toBe('Pending')
     const followup = getAll('followups').find((item) => item.patientId === 'patient-4' && item.followupDate === '2026-12-24')
     expect(followup.status).toBe('Pending')
+  })
+
+  it('copies a therapist follow-up date onto the patient plan for the dashboard', async () => {
+    await createFollowup({
+      patientId: 'patient-1',
+      followupDate: '2026-12-30',
+      status: 'Pending',
+      therapistId: 'therapist-1',
+    })
+    const plan = pickActivePlan(await getPlansForPatient('patient-1'))
+    expect(plan.followUpDate).toBe('2026-12-30')
+    const picked = pickCurrentFollowup(
+      getAll('followups').filter((row) => row.patientId === 'patient-1'),
+      plan,
+    )
+    expect(picked.followupDate).toBe('2026-12-30')
+  })
+
+  it('deletes a follow-up without removing the patient plan', async () => {
+    const rec = await createFollowup({
+      patientId: 'patient-1',
+      followupDate: '2027-01-08',
+      status: 'Pending',
+      therapistId: 'therapist-1',
+    })
+    const planBefore = pickActivePlan(await getPlansForPatient('patient-1'))
+    expect(planBefore).toBeTruthy()
+    await deleteFollowup(rec.id)
+    expect(getAll('followups').some((row) => row.id === rec.id)).toBe(false)
+    const planAfter = pickActivePlan(await getPlansForPatient('patient-1'))
+    expect(planAfter.id).toBe(planBefore.id)
+    await expect(sendFollowupReminder(rec.id)).rejects.toThrow('Email service is not configured.')
   })
 })

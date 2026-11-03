@@ -406,14 +406,6 @@ export default function ConsultationPage() {
             </div>
 
             <div className="grid sm:grid-cols-2 gap-4">
-              <FormField label="Doctor Instructions for Therapists">
-                <Textarea
-                  value={form.doctorNotes}
-                  onChange={(e) => set('doctorNotes', e.target.value)}
-                  placeholder="Specific medicated oils, dough ring placement, pressure, monitoring vitals..."
-                  rows={2}
-                />
-              </FormField>
               <FormField label="Pathya-Apathya (Diet & Lifestyle Instructions)">
                 <Textarea
                   value={form.dietaryInstructions}

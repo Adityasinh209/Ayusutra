@@ -207,6 +207,7 @@ class Appointment(Base):
     created_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    cancellation_request: Mapped[str] = mapped_column(String(32), default="")
     # NULL when cancelled so the unique slot can be reused.
     therapist_slot_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
     room_slot_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
@@ -262,7 +263,7 @@ class MobileVerification(Base):
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     mobile: Mapped[str] = mapped_column(String(16), index=True)
     purpose: Mapped[str] = mapped_column(String(32))
-    otp_code: Mapped[str] = mapped_column(String(6))
+    otp_code: Mapped[str] = mapped_column(String(64))
     expires_at: Mapped[datetime] = mapped_column(DateTime)
     resend_available_at: Mapped[datetime] = mapped_column(DateTime)
     attempts: Mapped[int] = mapped_column(Integer, default=0)

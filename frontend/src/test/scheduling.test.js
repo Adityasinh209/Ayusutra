@@ -107,6 +107,16 @@ describe('Appointment Confirmation', () => {
     expect(mail.to.length).toBeGreaterThan(0)
   })
 
+  it('filters slots to the preferred therapist', async () => {
+    const slots = await recommendSlots({
+      patientId: 'patient-1',
+      therapyId: 'therapy-1',
+      preferredTherapistId: 'therapist-1',
+    })
+    expect(slots.length).toBeGreaterThan(0)
+    expect(slots.every((slot) => slot.therapistId === 'therapist-1')).toBe(true)
+  })
+
   it('does not offer slots on a past date', async () => {
     const slots = await recommendSlots({
       patientId: 'patient-1',

@@ -72,7 +72,14 @@ def _add_minutes(hhmm: str, mins: int) -> str:
     return f"{total // 60:02d}:{total % 60:02d}"
 
 
-def recommend_slots(db: Session, patient_id: str, therapy_id: str, preferred_date: str = "", preferred_time: str = "") -> list[dict]:
+def recommend_slots(
+    db: Session,
+    patient_id: str,
+    therapy_id: str,
+    preferred_date: str = "",
+    preferred_time: str = "",
+    preferred_therapist_id: str = "",
+) -> list[dict]:
     therapy = db.get(Therapy, therapy_id)
     if therapy is None or not therapy.active:
         return []
@@ -81,6 +88,8 @@ def recommend_slots(db: Session, patient_id: str, therapy_id: str, preferred_dat
         t for t in db.query(Therapist).filter(Therapist.active == 1)
         if _qualified(t, therapy) and (t.availability_status or "Available") == "Available"
     ]
+    if preferred_therapist_id:
+        therapists = [t for t in therapists if t.id == preferred_therapist_id]
     rooms = [r for r in db.query(TherapyRoom).filter(TherapyRoom.active == 1) if _room_ok(r, therapy)]
     appts = db.query(Appointment).all()
     now = datetime.now()

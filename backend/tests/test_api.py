@@ -2,7 +2,7 @@ import os
 import subprocess
 import sys
 
-from tests.conftest import auth, otp_token
+from tests.conftest import auth, emergency_fields, otp_token
 
 
 def test_health(client):
@@ -22,6 +22,7 @@ def test_patient_cannot_read_other_patient(client):
     other = client.post("/api/patients", headers=auth("user-1"), json={
         "fullName": "Other", "phone": "9000000001", "address": "Lane 1",
         "otpVerificationToken": token,
+        **emergency_fields(client, auth("user-1"), phone="9111000002"),
     })
     assert other.status_code == 201
     assert client.get(f"/api/patients/{other.json()['id']}", headers=auth("user-3")).status_code == 403

@@ -3,7 +3,7 @@ import { describe, expect, it, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import OtpVerification from '../components/otp/OtpVerification.jsx'
-import { resetOtpStore, sendOtp, verifyOtp } from '../services/otp.js'
+import { peekLatestOtp, resetOtpStore, sendOtp, verifyOtp } from '../services/otp.js'
 import { createPatient } from '../services/patients.js'
 import { acceptAppointment } from '../services/appointments.js'
 import { addItem } from '../mocks/store.js'
@@ -34,10 +34,11 @@ describe('OTP registration and shared records', () => {
     const user = userEvent.setup()
     render(<Harness />)
     await user.click(screen.getByRole('button', { name: 'Send OTP' }))
-    expect(screen.getByText(/Demo OTP: 123456/)).toBeTruthy()
+    expect(screen.queryByText(/Demo OTP/)).toBeNull()
     expect(screen.getByRole('button', { name: /Resend OTP/ }).disabled).toBe(true)
+    const otp = peekLatestOtp('9001234501', 'patient_register')
     const boxes = screen.getAllByLabelText(/OTP digit/)
-    for (const [index, digit] of '123456'.split('').entries()) {
+    for (const [index, digit] of otp.split('').entries()) {
       await user.type(boxes[index], digit)
     }
     await user.click(screen.getByRole('button', { name: 'Verify OTP' }))
@@ -47,7 +48,7 @@ describe('OTP registration and shared records', () => {
   })
 
   it('rejects a wrong code and blocks registration until a token is consumed', async () => {
-    const sent = await sendOtp('9001234502', 'patient_register')
+    await sendOtp('9001234502', 'patient_register')
     await expect(verifyOtp('9001234502', 'patient_register', '000000')).rejects.toThrow('Incorrect OTP.')
     await expect(createPatient({
       fullName: 'OTP Patient',
@@ -58,7 +59,9 @@ describe('OTP registration and shared records', () => {
       address: '1 Lane',
       emergencyContact: 'Kin - 9001234503',
     }, 'user-2')).rejects.toThrow('Verify the mobile number')
-    const verified = await verifyOtp('9001234502', 'patient_register', sent.debugOtp)
+    const verified = await verifyOtp('9001234502', 'patient_register', peekLatestOtp('9001234502', 'patient_register'))
+    await sendOtp('9001234503', 'emergency_contact')
+    const emergencyVerified = await verifyOtp('9001234503', 'emergency_contact', peekLatestOtp('9001234503', 'emergency_contact'))
     const patient = await createPatient({
       fullName: 'OTP Patient',
       dateOfBirth: '1990-01-01',
@@ -66,8 +69,10 @@ describe('OTP registration and shared records', () => {
       phone: '9001234502',
       email: 'otp-patient@example.com',
       address: '1 Lane',
-      emergencyContact: 'Kin - 9001234503',
+      emergencyName: 'Kin',
+      emergencyPhone: '9001234503',
       otpVerificationToken: verified.verificationToken,
+      emergencyOtpVerificationToken: emergencyVerified.verificationToken,
     }, 'user-2')
     expect(patient.phoneVerified).toBe(true)
   })

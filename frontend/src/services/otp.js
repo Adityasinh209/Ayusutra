@@ -2,7 +2,8 @@ import { getAll } from '../mocks/store.js'
 import { api, remoteReady } from './http.js'
 
 const KEY = 'ayursutra:otp'
-export const DUMMY_OTP = '123456'
+const MAX_ATTEMPTS = 5
+const HOURLY_LIMIT = 5
 
 export function canonicalPhone(raw) {
   const digits = String(raw || '').replace(/\D/g, '')
@@ -27,6 +28,10 @@ function writeStore(rows) {
   localStorage.setItem(KEY, JSON.stringify(rows))
 }
 
+function generateOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000))
+}
+
 function phoneTaken(phone, { ignorePatientId } = {}) {
   const patients = getAll('patients')
   const users = getAll('users')
@@ -36,33 +41,55 @@ function phoneTaken(phone, { ignorePatientId } = {}) {
     || therapists.some((t) => t.phone === phone)
 }
 
+export function peekLatestOtp(mobile, purpose) {
+  const phone = canonicalPhone(mobile)
+  const rows = readStore()
+  const row = [...rows].reverse().find((item) => item.mobile === phone && item.purpose === purpose && !item.consumed && !item.verified)
+  return row?.otp || ''
+}
+
 export async function sendOtp(mobile, purpose, options = {}) {
   const phone = canonicalPhone(mobile)
   if (remoteReady()) return api('/api/send-otp', { method: 'POST', body: { mobile: phone, purpose } })
-  if (phoneTaken(phone, options)) {
+  if (purpose !== 'emergency_contact' && phoneTaken(phone, options)) {
     const err = new Error('This mobile number is already registered.')
     err.status = 409
     throw err
   }
   const rows = readStore()
+  const hourAgo = Date.now() - 60 * 60 * 1000
+  const hourly = rows.filter((row) => row.mobile === phone && row.purpose === purpose && row.createdAt > hourAgo).length
+  if (hourly >= HOURLY_LIMIT) {
+    const err = new Error('Too many OTP requests. Try again later.')
+    err.status = 429
+    throw err
+  }
   const latest = rows.filter((row) => row.mobile === phone && row.purpose === purpose && !row.consumed).at(-1)
   if (latest && !latest.verified && latest.resendAt > Date.now()) {
     const err = new Error('Wait 30 seconds before resending the OTP.')
     err.status = 429
     throw err
   }
+  rows.forEach((row) => {
+    if (row.mobile === phone && row.purpose === purpose && !row.consumed && !row.verified) {
+      row.consumed = true
+    }
+  })
+  const otp = generateOtp()
   rows.push({
     mobile: phone,
     purpose,
-    otp: DUMMY_OTP,
+    otp,
     expiresAt: Date.now() + 5 * 60 * 1000,
     resendAt: Date.now() + 30 * 1000,
+    createdAt: Date.now(),
+    attempts: 0,
     verified: false,
     consumed: false,
     token: '',
   })
   writeStore(rows)
-  return { sent: true, mobile: phone, purpose, resendAfterSeconds: 30, debugOtp: DUMMY_OTP }
+  return { sent: true, mobile: phone, purpose, resendAfterSeconds: 30, expiresInSeconds: 300 }
 }
 
 export async function verifyOtp(mobile, purpose, otp) {
@@ -75,13 +102,22 @@ export async function verifyOtp(mobile, purpose, otp) {
     err.status = 400
     throw err
   }
+  row.attempts = (row.attempts || 0) + 1
   if (String(otp) !== row.otp) {
+    if (row.attempts >= MAX_ATTEMPTS) {
+      row.consumed = true
+      writeStore(rows)
+      const locked = new Error('Too many incorrect attempts. Request a new OTP.')
+      locked.status = 400
+      throw locked
+    }
+    writeStore(rows)
     const err = new Error('Incorrect OTP.')
     err.status = 400
     throw err
   }
   row.verified = true
-  row.token = `otp-${phone}-${purpose}`
+  row.token = `otp-${phone}-${purpose}-${Date.now()}`
   writeStore(rows)
   return { verified: true, mobile: phone, purpose, verificationToken: row.token }
 }

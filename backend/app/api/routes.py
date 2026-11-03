@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -15,11 +16,13 @@ from app.models.entities import (
 )
 from app.services.booking import accept, book, cancel, complete, decline
 from app.services.continuity import active_plan_for_patient, apply_plan_fields, ensure_bill, ensure_followup, open_appointment
+from app.services.notify import notify_followup_reminder, notify_therapy_assigned
 from app.services.otp import consume_verification
-from app.services.phones import assert_phone_available
+from app.services.phones import assert_phone_available, canonical_indian_mobile
 from app.services.scheduling import recommend_slots
 
 router = APIRouter()
+log = logging.getLogger("ayursutra.api")
 STAFF = ("doctor", "therapist", "receptionist", "admin")
 CLINICAL = ("doctor", "therapist", "admin")
 
@@ -48,8 +51,9 @@ PLAN_FIELDS = [
 APPT_FIELDS = [
     "id", "patient_id", "plan_id", "therapy_id", "therapist_id", "room_id", "date", "start_time", "end_time",
     "treatment_stage", "session_number", "status", "session_notes", "therapist_observations",
-    "doctor_remarks", "created_by", "created_at", "completed_at",
+    "doctor_remarks", "created_by", "created_at", "completed_at", "cancellation_request",
 ]
+OPEN_APPT = ("Pending Confirmation", "Scheduled", "Confirmed")
 
 
 def _owns(user: User, patient_id: str) -> bool:
@@ -70,6 +74,25 @@ def me(user: User = Depends(get_current_user)):
     return row(user, ["id", "name", "email", "role", "role_label", "patient_id", "therapist_id", "clerk_id"])
 
 
+@router.post("/api/me/delete-account")
+def delete_account(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if user.role != "patient":
+        raise HTTPException(403, "Only patients can delete their own account.")
+    if not user.patient_id:
+        raise HTTPException(400, "No patient profile is linked to this account.")
+    open_rows = (
+        db.query(Appointment)
+        .filter(Appointment.patient_id == user.patient_id, Appointment.status.in_(OPEN_APPT))
+        .count()
+    )
+    if open_rows:
+        raise HTTPException(409, "Finish or cancel remaining sessions before deleting your account.")
+    user.active = 0
+    _audit(db, user.id, "delete-account", "user", user.id)
+    db.commit()
+    return {"ok": True}
+
+
 class IntakeBody(BaseModel):
     fullName: str
     phone: str
@@ -78,10 +101,26 @@ class IntakeBody(BaseModel):
     gender: str = ""
     email: str = ""
     emergencyContact: str = ""
+    emergencyName: str = ""
+    emergencyPhone: str = ""
+    emergencyOtpVerificationToken: str = ""
     chiefComplaint: str = ""
     medicalHistory: str = ""
     allergies: str = ""
     otpVerificationToken: str = ""
+
+
+def _emergency_contact_value(db: Session, body: IntakeBody, patient_phone: str) -> str:
+    name = (body.emergencyName or "").strip()
+    phone_raw = (body.emergencyPhone or "").strip()
+    letters = name.replace(" ", "").replace(".", "").replace("'", "").replace("-", "")
+    if len(name) < 2 or len(name) > 60 or not letters.isalpha():
+        raise HTTPException(status_code=422, detail="Enter a valid emergency contact name (letters and spaces, 2-60 characters).")
+    emergency_phone = canonical_indian_mobile(phone_raw)
+    if emergency_phone == patient_phone:
+        raise HTTPException(status_code=422, detail="Emergency contact number cannot be the same as the patient's mobile number.")
+    consume_verification(db, body.emergencyOtpVerificationToken, emergency_phone, "emergency_contact")
+    return f"{name} - {emergency_phone}"
 
 
 @router.get("/api/patients")
@@ -106,12 +145,13 @@ def get_patient(patient_id: str, user: User = Depends(get_current_user), db: Ses
 @router.post("/api/patients", status_code=201)
 def create_patient(body: IntakeBody, user: User = Depends(require_roles(*STAFF)), db: Session = Depends(get_db)):
     phone = assert_phone_available(db, body.phone)
+    emergency_contact = _emergency_contact_value(db, body, phone)
     consume_verification(db, body.otpVerificationToken, phone, "patient_register")
     patient = Patient(
         id=f"patient-{int(datetime.now().timestamp()*1000)}",
         full_name=body.fullName.strip(), phone=phone, address=body.address.strip(), phone_verified=1,
         date_of_birth=body.dateOfBirth, gender=body.gender, email=body.email.strip(),
-        emergency_contact=body.emergencyContact, chief_complaint=body.chiefComplaint,
+        emergency_contact=emergency_contact, chief_complaint=body.chiefComplaint,
         medical_history=body.medicalHistory, allergies=body.allergies, registered_by=user.id,
     )
     db.add(patient)
@@ -131,6 +171,7 @@ def intake(body: IntakeBody, user: User = Depends(get_current_user), db: Session
         ignore_patient_id=existing.id if existing else None,
         ignore_user_id=user.id,
     )
+    emergency_contact = _emergency_contact_value(db, body, phone)
     consume_verification(db, body.otpVerificationToken, phone, "patient_intake")
     if existing is None:
         existing = Patient(id=f"patient-{user.id}"[:64], phone=phone, registered_by=user.id, user_id=user.id, clerk_id=user.clerk_id)
@@ -144,7 +185,7 @@ def intake(body: IntakeBody, user: User = Depends(get_current_user), db: Session
     existing.date_of_birth = body.dateOfBirth
     existing.gender = body.gender
     existing.email = (body.email or user.email).strip()
-    existing.emergency_contact = body.emergencyContact
+    existing.emergency_contact = emergency_contact
     existing.chief_complaint = body.chiefComplaint
     existing.medical_history = body.medicalHistory
     existing.allergies = body.allergies
@@ -228,6 +269,8 @@ def create_emr(body: EmrBody, user: User = Depends(require_roles(*CLINICAL)), db
             plan.assigned_therapist_id = linked.therapist_id
             plan.assigned_room_id = linked.room_id
             linked.plan_id = plan.id
+        elif user.therapist_id:
+            plan.assigned_therapist_id = user.therapist_id
         rec.plan_id = plan.id
         ensure_bill(
             db,
@@ -248,6 +291,18 @@ def create_emr(body: EmrBody, user: User = Depends(require_roles(*CLINICAL)), db
     _audit(db, user.id, "create", "emr", rec.id)
     db.commit()
     db.refresh(rec)
+    if rec.therapy_id:
+        try:
+            notify_therapy_assigned(
+                db,
+                db.get(Patient, rec.patient_id),
+                db.get(Therapy, rec.therapy_id),
+                user,
+                plan,
+                rec,
+            )
+        except Exception:
+            log.exception("Assignment email failed after EMR save")
     return _emr(rec)
 
 
@@ -371,6 +426,7 @@ class RecommendBody(BaseModel):
     therapyId: str
     preferredDate: str = ""
     preferredTime: str = ""
+    preferredTherapistId: str = ""
 
 
 @router.post("/api/scheduling/recommend")
@@ -380,7 +436,9 @@ def recommend(body: RecommendBody, user: User = Depends(get_current_user), db: S
             raise HTTPException(403, "Not allowed.")
     elif user.role not in STAFF:
         raise HTTPException(403, "Not allowed.")
-    return recommend_slots(db, body.patientId, body.therapyId, body.preferredDate, body.preferredTime)
+    return recommend_slots(
+        db, body.patientId, body.therapyId, body.preferredDate, body.preferredTime, body.preferredTherapistId,
+    )
 
 
 class BookBody(BaseModel):
@@ -438,14 +496,10 @@ def complete_appt(appt_id: str, body: CompleteBody, user: User = Depends(require
     return row(appt, APPT_FIELDS)
 
 
-def _can_manage_appt(user: User, appt: Appointment) -> bool:
-    if user.role in ("admin", "doctor"):
+def _can_cancel_appt(user: User, appt: Appointment) -> bool:
+    if user.role in ("admin", "doctor", "receptionist"):
         return True
-    if user.role == "therapist" and user.therapist_id == appt.therapist_id:
-        return True
-    if user.role == "receptionist":
-        return True
-    return user.role == "patient" and user.patient_id == appt.patient_id
+    return user.role == "therapist" and user.therapist_id == appt.therapist_id
 
 
 @router.post("/api/appointments/{appt_id}/accept")
@@ -478,9 +532,50 @@ def cancel_appt(appt_id: str, user: User = Depends(get_current_user), db: Sessio
     appt = db.get(Appointment, appt_id)
     if appt is None:
         raise HTTPException(404, "Appointment not found.")
-    if not _can_manage_appt(user, appt):
+    if not _can_cancel_appt(user, appt):
         raise HTTPException(403, "Not allowed.")
     appt = cancel(db, appt, user.id)
+    return row(appt, APPT_FIELDS)
+
+
+@router.post("/api/appointments/{appt_id}/request-cancel")
+def request_cancel_appt(appt_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    appt = db.get(Appointment, appt_id)
+    if appt is None:
+        raise HTTPException(404, "Appointment not found.")
+    if user.role != "patient" or user.patient_id != appt.patient_id:
+        raise HTTPException(403, "Not allowed.")
+    if appt.status not in OPEN_APPT:
+        raise HTTPException(409, "This session cannot be cancelled.")
+    appt.cancellation_request = "Requested"
+    _audit(db, user.id, "request-cancel", "appointment", appt.id)
+    db.commit()
+    db.refresh(appt)
+    return row(appt, APPT_FIELDS)
+
+
+@router.post("/api/appointments/{appt_id}/approve-cancel")
+def approve_cancel_appt(appt_id: str, user: User = Depends(require_roles("receptionist", "admin")), db: Session = Depends(get_db)):
+    appt = db.get(Appointment, appt_id)
+    if appt is None:
+        raise HTTPException(404, "Appointment not found.")
+    if appt.cancellation_request != "Requested":
+        raise HTTPException(409, "No cancellation request is pending.")
+    appt = cancel(db, appt, user.id)
+    return row(appt, APPT_FIELDS)
+
+
+@router.post("/api/appointments/{appt_id}/reject-cancel")
+def reject_cancel_appt(appt_id: str, user: User = Depends(require_roles("receptionist", "admin")), db: Session = Depends(get_db)):
+    appt = db.get(Appointment, appt_id)
+    if appt is None:
+        raise HTTPException(404, "Appointment not found.")
+    if appt.cancellation_request != "Requested":
+        raise HTTPException(409, "No cancellation request is pending.")
+    appt.cancellation_request = "Rejected"
+    _audit(db, user.id, "reject-cancel", "appointment", appt.id)
+    db.commit()
+    db.refresh(appt)
     return row(appt, APPT_FIELDS)
 
 
@@ -494,7 +589,7 @@ def therapies(user: User = Depends(get_current_user), db: Session = Depends(get_
 def therapists(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return [row(t, [
         "id", "user_id", "name", "specializations", "qualification", "experience",
-        "shift_start", "shift_end", "availability_status", "active",
+        "shift_start", "shift_end", "availability_status", "active", "therapy_ids",
     ]) for t in db.query(Therapist).filter(Therapist.active == 1).all()]
 
 
@@ -663,8 +758,6 @@ def list_followups(user: User = Depends(get_current_user), db: Session = Depends
     q = db.query(FollowUp)
     if user.role == "patient":
         q = q.filter(FollowUp.patient_id == user.patient_id)
-    elif user.role == "therapist" and user.therapist_id:
-        q = q.filter(FollowUp.therapist_id == user.therapist_id)
     return [_followup(f) for f in q.order_by(FollowUp.followup_date).all()]
 
 
@@ -672,18 +765,24 @@ def list_followups(user: User = Depends(get_current_user), db: Session = Depends
 def create_followup(body: FollowUpBody, user: User = Depends(require_roles(*STAFF)), db: Session = Depends(get_db)):
     if db.get(Patient, body.patientId) is None:
         raise HTTPException(404, "Patient not found.")
-    if body.therapistId and db.get(Therapist, body.therapistId) is None:
+    therapist_id = body.therapistId or (user.therapist_id if user.role == "therapist" else None)
+    if therapist_id and db.get(Therapist, therapist_id) is None:
         raise HTTPException(404, "Therapist not found.")
+    plan = db.get(PanchakarmaPlan, body.planId) if body.planId else active_plan_for_patient(db, body.patientId)
     rec = FollowUp(
         id=f"followup-{int(datetime.now().timestamp() * 1000)}",
         patient_id=body.patientId,
-        therapist_id=body.therapistId,
-        plan_id=body.planId,
+        therapist_id=therapist_id,
+        plan_id=(plan.id if plan else body.planId),
         followup_date=body.followupDate,
         reminder_sent=1 if body.reminderSent else 0,
         status=body.status,
     )
     db.add(rec)
+    if plan:
+        plan.follow_up_date = body.followupDate
+        if not plan.end_date:
+            plan.end_date = body.followupDate
     _audit(db, user.id, "create", "followup", rec.id)
     db.commit()
     db.refresh(rec)
@@ -705,3 +804,44 @@ def update_followup(
     db.commit()
     db.refresh(rec)
     return _followup(rec)
+
+
+@router.delete("/api/followups/{followup_id}")
+def delete_followup(followup_id: str, user: User = Depends(require_roles("therapist", "admin")), db: Session = Depends(get_db)):
+    rec = db.get(FollowUp, followup_id)
+    if rec is None:
+        raise HTTPException(404, "Follow-up not found.")
+    plan = db.get(PanchakarmaPlan, rec.plan_id) if rec.plan_id else None
+    if plan and plan.follow_up_date == rec.followup_date:
+        remaining = (
+            db.query(FollowUp)
+            .filter(FollowUp.plan_id == plan.id, FollowUp.id != rec.id, FollowUp.status != "Completed")
+            .order_by(FollowUp.followup_date.desc())
+            .first()
+        )
+        plan.follow_up_date = remaining.followup_date if remaining else ""
+    db.delete(rec)
+    _audit(db, user.id, "delete", "followup", rec.id)
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/api/followups/{followup_id}/remind")
+def remind_followup(followup_id: str, user: User = Depends(require_roles(*STAFF)), db: Session = Depends(get_db)):
+    rec = db.get(FollowUp, followup_id)
+    if rec is None:
+        raise HTTPException(404, "Follow-up not found.")
+    result = notify_followup_reminder(db, rec)
+    if not result.get("sent"):
+        reason = result.get("reason") or "send-failed"
+        status = 503 if reason == "smtp-not-configured" else 400 if reason == "missing-address" else 502
+        messages = {
+            "smtp-not-configured": "Email service is not configured.",
+            "missing-address": "Patient has no registered email address.",
+        }
+        raise HTTPException(status, messages.get(reason, reason))
+    rec.reminder_sent = 1
+    _audit(db, user.id, "remind", "followup", rec.id)
+    db.commit()
+    db.refresh(rec)
+    return {"sent": True, "to": result.get("to"), "followup": _followup(rec)}

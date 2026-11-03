@@ -1,19 +1,22 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { listPlans, updatePlanStage } from '../../services/plans.js'
+import { useAuth } from '../../hooks/useAuth.jsx'
+import { listPlans, pickActivePlan, updatePlanStage } from '../../services/plans.js'
 import { listPatients } from '../../services/patients.js'
 import { listAppointments } from '../../services/appointments.js'
-import { createFollowup, listFollowups, updateFollowup } from '../../services/followups.js'
+import { createFollowup, deleteFollowup, listFollowups, sendFollowupReminder, updateFollowup } from '../../services/followups.js'
 import PageHeader from '../../components/PageHeader.jsx'
 import Card from '../../components/Card.jsx'
 import FormField, { Input, Select } from '../../components/FormField.jsx'
 import Badge from '../../components/Badge.jsx'
 import Button from '../../components/Button.jsx'
+import { ConfirmModal } from '../../components/Modal.jsx'
 import { PageSpinner } from '../../components/Spinner.jsx'
 import Alert from '../../components/Alert.jsx'
 import { formatDate } from '../../utils/date.js'
 
 export default function FollowupsPage() {
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [plans, setPlans] = useState([])
   const [patients, setPatients] = useState([])
@@ -23,6 +26,9 @@ export default function FollowupsPage() {
   const [success, setSuccess] = useState(null)
   const [followups, setFollowups] = useState([])
   const [draft, setDraft] = useState({ patientId: '', followupDate: '', status: 'Pending' })
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+  const [remindingId, setRemindingId] = useState(null)
 
   async function loadData() {
     try {
@@ -46,6 +52,38 @@ export default function FollowupsPage() {
   useEffect(() => {
     loadData()
   }, [])
+
+  const canRemoveFollowup = user?.role === 'therapist' || user?.role === 'admin'
+  const canSendReminder = ['therapist', 'receptionist', 'doctor', 'admin'].includes(user?.role)
+
+  async function handleDeleteFollowup() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await deleteFollowup(deleteTarget.id)
+      setDeleteTarget(null)
+      setSuccess('Follow-up removed. Patient records were not changed.')
+      await loadData()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  async function handleSendReminder(item) {
+    setRemindingId(item.id)
+    setError(null)
+    try {
+      const result = await sendFollowupReminder(item.id)
+      setSuccess(result?.sent ? `Reminder sent to ${result.to}.` : 'Reminder was not sent.')
+      await loadData()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setRemindingId(null)
+    }
+  }
 
   async function handleMarkCompleted(planId) {
     try {
@@ -87,6 +125,28 @@ export default function FollowupsPage() {
                     await loadData()
                   }}>Mark completed</Button>
                 )}
+                {canSendReminder && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    disabled={remindingId === item.id}
+                    onClick={() => handleSendReminder(item)}
+                  >
+                    {remindingId === item.id ? 'Sending…' : 'Send reminder'}
+                  </Button>
+                )}
+                {canRemoveFollowup && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="text-red-500 hover:text-red-700"
+                    onClick={() => setDeleteTarget(item)}
+                  >
+                    Remove
+                  </Button>
+                )}
               </div>
             </div>
           ))}
@@ -107,7 +167,12 @@ export default function FollowupsPage() {
                 setError('Choose a patient and a follow-up date.')
                 return
               }
-              await createFollowup(draft)
+              const plan = pickActivePlan(plans.filter((row) => row.patientId === draft.patientId))
+              await createFollowup({
+                ...draft,
+                therapistId: user?.therapistId || null,
+                planId: plan?.id || null,
+              })
               setDraft({ patientId: '', followupDate: '', status: 'Pending' })
               setSuccess('Follow-up saved. It will appear on the patient dashboard after refresh.')
               await loadData()
@@ -206,6 +271,16 @@ export default function FollowupsPage() {
           )
         })}
       </div>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => !deleting && setDeleteTarget(null)}
+        onConfirm={handleDeleteFollowup}
+        loading={deleting}
+        title="Remove follow-up?"
+        message={`Remove the follow-up for ${patientMap[deleteTarget?.patientId]?.fullName || 'this patient'} on ${deleteTarget?.followupDate ? formatDate(deleteTarget.followupDate) : 'the scheduled date'}? Assessment and medical records will not be deleted.`}
+        confirmLabel="Remove follow-up"
+      />
     </div>
   )
 }

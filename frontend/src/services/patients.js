@@ -11,6 +11,25 @@ import { getAll, getById, addItem, updateItem } from '../mocks/store.js'
 import { generateId } from '../utils/id.js'
 import { api, remoteReady } from './http.js'
 import { canonicalPhone, consumeOtp } from './otp.js'
+import { formatEmergencyContact, validEmergencyName, validEmergencyPhone } from '../utils/validation.js'
+
+function composeEmergency(data, patientPhone) {
+  const nameError = validEmergencyName(data.emergencyName)
+  if (nameError) {
+    const err = new Error(nameError)
+    err.status = 422
+    throw err
+  }
+  const phoneError = validEmergencyPhone(data.emergencyPhone, patientPhone)
+  if (phoneError) {
+    const err = new Error(phoneError)
+    err.status = 422
+    throw err
+  }
+  const emergencyPhone = canonicalPhone(data.emergencyPhone)
+  consumeOtp(data.emergencyOtpVerificationToken, emergencyPhone, 'emergency_contact')
+  return formatEmergencyContact(data.emergencyName, emergencyPhone)
+}
 
 function delay(ms = 350) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -50,10 +69,18 @@ export async function createPatient(data, createdByUserId) {
     throw err
   }
   consumeOtp(data.otpVerificationToken, phone, 'patient_register')
-  const { otpVerificationToken: _token, ...fields } = data
+  const emergencyContact = composeEmergency(data, phone)
+  const {
+    otpVerificationToken: _token,
+    emergencyOtpVerificationToken: _emergencyToken,
+    emergencyName: _emergencyName,
+    emergencyPhone: _emergencyPhone,
+    ...fields
+  } = data
   const patient = {
     id: generateId('patient'),
     ...fields,
+    emergencyContact,
     phone,
     phoneVerified: true,
     registeredAt: new Date().toISOString(),
@@ -115,6 +142,7 @@ export async function submitPatientIntake(data, user) {
     throw err
   }
   consumeOtp(data.otpVerificationToken, phone, 'patient_intake')
+  const emergencyContact = composeEmergency(data, phone)
 
   const payload = {
     fullName: data.fullName.trim(),
@@ -123,7 +151,7 @@ export async function submitPatientIntake(data, user) {
     dateOfBirth: data.dateOfBirth,
     gender: data.gender,
     email: (data.email || user.email || '').trim(),
-    emergencyContact: data.emergencyContact.trim(),
+    emergencyContact,
     chiefComplaint: (data.chiefComplaint || '').trim(),
     medicalHistory: (data.medicalHistory || '').trim(),
     allergies: (data.allergies || '').trim(),
@@ -175,4 +203,21 @@ function upsertUserProfileForPatient(patient, user) {
     return
   }
   addItem('users', { id: user.id, ...profile })
+}
+
+export async function deleteMyAccount(patientId) {
+  if (remoteReady()) return api('/api/me/delete-account', { method: 'POST' })
+  const open = getAll('appointments').filter((a) => (
+    a.patientId === patientId
+    && ['Pending Confirmation', 'Scheduled', 'Confirmed'].includes(a.status)
+  ))
+  if (open.length) {
+    const err = new Error('Finish or cancel remaining sessions before deleting your account.')
+    err.status = 409
+    throw err
+  }
+  const users = getAll('users')
+  const match = users.find((u) => u.patientId === patientId)
+  if (match) updateItem('users', match.id, { active: false })
+  return { ok: true }
 }

@@ -30,7 +30,13 @@ class Settings(BaseSettings):
     clerk_frontend_api: str = ""
     allow_test_tokens: bool = False
     upload_dir: str = "uploads"
-    dummy_otp: str = "123456"
+    dummy_otp: str = ""
+    sms_provider: str = "fast2sms"
+    fast2sms_api_key: str = ""
+    otp_hmac_secret: str = "ayursutra-otp-hmac"
+    otp_max_attempts: int = 5
+    otp_hourly_limit: int = 5
+    frontend_url: str = "http://localhost:5173"
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""
