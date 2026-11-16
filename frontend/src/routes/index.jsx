@@ -23,6 +23,7 @@ const InventoryPage = lazy(() => import('../pages/inventory/InventoryPage.jsx'))
 const BillingPage = lazy(() => import('../pages/billing/BillingPage.jsx'))
 const FollowupsPage = lazy(() => import('../pages/followups/FollowupsPage.jsx'))
 const StaffRegistrationPage = lazy(() => import('../pages/staff/StaffRegistrationPage.jsx'))
+const StaffDirectoryPage = lazy(() => import('../pages/staff/StaffDirectoryPage.jsx'))
 const AssistantPage = lazy(() => import('../pages/assistant/AssistantPage.jsx'))
 
 function LegacyLoginRedirect() {
@@ -116,6 +117,10 @@ export default function AppRoutes() {
         <Route
           path="/followups"
           element={<AuthedRoute roles={['doctor', 'therapist', 'admin', 'receptionist']}><FollowupsPage /></AuthedRoute>}
+        />
+        <Route
+          path="/staff"
+          element={<AuthedRoute roles={['admin']}><StaffDirectoryPage /></AuthedRoute>}
         />
         <Route
           path="/staff/register"

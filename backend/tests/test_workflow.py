@@ -34,6 +34,43 @@ def test_cross_role_phone_and_staff_registration(client):
     assert denied.status_code == 403
 
 
+def test_admin_can_remove_therapist_and_receptionist(client):
+    admin = auth("user-admin")
+    therapist_phone = "9002223344"
+    therapist_token = otp_token(client, admin, therapist_phone, "therapist_register")
+    therapist = client.post("/api/staff?role=therapist", headers=admin, json={
+        "fullName": "Removable Therapist",
+        "email": "remove.therapist@ayursutra.dev",
+        "mobile": therapist_phone,
+        "otpVerificationToken": therapist_token,
+    })
+    assert therapist.status_code == 201, therapist.text
+    therapist_id = therapist.json()["therapistId"]
+    removed = client.delete(f"/api/therapists/{therapist_id}", headers=admin)
+    assert removed.status_code == 200, removed.text
+    listed = client.get("/api/therapists", headers=admin).json()
+    assert all(item["id"] != therapist_id for item in listed)
+    denied = client.delete(f"/api/therapists/{therapist_id}", headers=auth("user-2"))
+    assert denied.status_code == 403
+
+    desk_phone = "9002223355"
+    desk_token = otp_token(client, admin, desk_phone, "receptionist_register")
+    desk = client.post("/api/staff?role=receptionist", headers=admin, json={
+        "fullName": "Removable Desk",
+        "email": "remove.desk@ayursutra.dev",
+        "mobile": desk_phone,
+        "shift": "Morning",
+        "otpVerificationToken": desk_token,
+    })
+    assert desk.status_code == 201, desk.text
+    roster = client.get("/api/receptionists", headers=admin).json()
+    created = next(item for item in roster if item["email"] == "remove.desk@ayursutra.dev")
+    gone = client.delete(f"/api/receptionists/{created['id']}", headers=admin)
+    assert gone.status_code == 200, gone.text
+    after = client.get("/api/receptionists", headers=admin).json()
+    assert all(item["id"] != created["id"] for item in after)
+
+
 def test_patient_books_and_therapist_accepts(client):
     booked = client.post("/api/appointments", headers=auth("user-rahul-patel"), json={
         "patientId": "patient-rahul-patel",

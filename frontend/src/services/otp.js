@@ -89,7 +89,7 @@ export async function sendOtp(mobile, purpose, options = {}) {
     token: '',
   })
   writeStore(rows)
-  return { sent: true, mobile: phone, purpose, resendAfterSeconds: 30, expiresInSeconds: 300 }
+  return { sent: true, mobile: phone, purpose, resendAfterSeconds: 30, expiresInSeconds: 300, debugOtp: otp }
 }
 
 export async function verifyOtp(mobile, purpose, otp) {

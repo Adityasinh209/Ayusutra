@@ -95,8 +95,13 @@
 }
 
 html {
-  font-size: 15.5px;
+  font-size: 16px;
   scroll-behavior: smooth;
+}
+
+/* Public landing / about page keeps its original type scale. */
+html:has(#about) {
+  font-size: 15.5px;
 }
 
 body {

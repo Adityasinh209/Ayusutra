@@ -45,6 +45,9 @@ def _hash_otp(code: str) -> str:
 
 
 def _generate_otp() -> str:
+    dummy = (settings.dummy_otp or "").strip()
+    if dummy.isdigit() and 4 <= len(dummy) <= 10:
+        return dummy
     return f"{secrets.randbelow(1_000_000):06d}"
 
 
@@ -181,13 +184,10 @@ def _deliver_fast2sms(phone: str, code: str) -> None:
 
 
 def _deliver(phone: str, code: str) -> None:
-    provider = (settings.sms_provider or "fast2sms").strip().lower()
-    if provider == "console":
-        log.info("OTP (console) to=%s code=%s", phone, code)
-        return
-    if not settings.fast2sms_api_key:
-        raise HTTPException(status_code=503, detail="SMS gateway is not configured. OTP could not be sent.")
-    _deliver_fast2sms(phone, code)
+    # Live Fast2SMS helpers remain below but are not invoked; demo OTP is logged and returned in JSON.
+    log.info("OTP (demo) to=%s code=%s", phone, code)
+    if (settings.sms_provider or "").strip().lower() == "fast2sms":
+        log.warning("SMS_PROVIDER=fast2sms is ignored; live SMS is disabled for demo OTP.")
 
 
 def send_otp(db: Session, mobile: str, purpose: str) -> dict:
@@ -242,16 +242,14 @@ def send_otp(db: Session, mobile: str, purpose: str) -> dict:
     )
     db.add(row)
     db.commit()
-    payload = {
+    return {
         "sent": True,
         "mobile": phone,
         "purpose": purpose,
         "resendAfterSeconds": 30,
         "expiresInSeconds": 300,
+        "debugOtp": code,
     }
-    if (settings.sms_provider or "").strip().lower() == "console":
-        payload["debugOtp"] = code
-    return payload
 
 
 def verify_otp(db: Session, mobile: str, purpose: str, otp: str) -> dict:

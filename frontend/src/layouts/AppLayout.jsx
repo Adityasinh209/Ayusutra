@@ -7,6 +7,7 @@ import Badge from '../components/Badge.jsx'
 const NAV_BY_ROLE = {
   admin: [
     { to: '/dashboard', label: 'Dashboard' },
+    { to: '/staff', label: 'Staff Directory' },
     { to: '/staff/register', label: 'Register Staff' },
     { to: '/patients', label: 'Patients' },
     { to: '/plans', label: 'Panchakarma Plans' },

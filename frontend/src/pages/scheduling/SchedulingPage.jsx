@@ -15,6 +15,7 @@ import Alert from '../../components/Alert.jsx'
 import Modal from '../../components/Modal.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 import { required, validate } from '../../utils/validation.js'
+import TherapistInfoPanel from '../../components/TherapistInfoPanel.jsx'
 import { currentTimeHHMM, formatDate, formatTime, isPastDate, todayISODate } from '../../utils/date.js'
 
 export default function SchedulingPage() {
@@ -205,6 +206,7 @@ export default function SchedulingPage() {
   const selectedPatient = patients.find((p) => p.id === form.patientId)
   const selectedTherapy = therapies.find((t) => t.id === form.therapyId)
   const qualifiedTherapists = therapists.filter((th) => !selectedTherapy || isTherapistQualified(th, selectedTherapy))
+  const selectedTherapist = therapists.find((th) => th.id === form.preferredTherapistId)
   const recommended = slots?.find((s) => s.recommended) ?? null
   const alternatives = slots?.filter((s) => !s.recommended) ?? []
 
@@ -267,19 +269,22 @@ export default function SchedulingPage() {
               </Select>
             </FormField>
 
-            <FormField label="Preferred Therapist" hint="Optional. Leave as any available therapist.">
-              <Select
-                value={form.preferredTherapistId}
-                onChange={(e) => set('preferredTherapistId', e.target.value)}
-              >
-                <option value="">Any available therapist</option>
-                {qualifiedTherapists.map((th) => (
-                  <option key={th.id} value={th.id}>
-                    {th.name}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
+            <div>
+              <FormField label="Preferred Therapist" hint="Optional. Leave as any available therapist.">
+                <Select
+                  value={form.preferredTherapistId}
+                  onChange={(e) => set('preferredTherapistId', e.target.value)}
+                >
+                  <option value="">Any available therapist</option>
+                  {qualifiedTherapists.map((th) => (
+                    <option key={th.id} value={th.id}>
+                      {th.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+              <TherapistInfoPanel therapist={selectedTherapist} />
+            </div>
 
             <FormField label="Treatment Stage in Protocol">
               <Select

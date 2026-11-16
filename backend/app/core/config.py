@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     allow_test_tokens: bool = False
     upload_dir: str = "uploads"
     dummy_otp: str = ""
-    sms_provider: str = "fast2sms"
+    sms_provider: str = "console"
     fast2sms_api_key: str = ""
     # Smart OTP template id from Fast2SMS → Smart OTP → Templates (optional).
     fast2sms_otp_id: str = ""

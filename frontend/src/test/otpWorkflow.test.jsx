@@ -34,7 +34,7 @@ describe('OTP registration and shared records', () => {
     const user = userEvent.setup()
     render(<Harness />)
     await user.click(screen.getByRole('button', { name: 'Send OTP' }))
-    expect(screen.queryByText(/Demo OTP/)).toBeNull()
+    expect(screen.getByText(/Demo OTP:/)).toBeTruthy()
     expect(screen.getByRole('button', { name: /Resend OTP/ }).disabled).toBe(true)
     const otp = peekLatestOtp('9001234501', 'patient_register')
     const boxes = screen.getAllByLabelText(/OTP digit/)

@@ -85,6 +85,11 @@ export default function OtpVerification({
         <Button type="button" className="mt-3" disabled={!ready || busy} onClick={requestCode}>Send OTP</Button>
       ) : (
         <div className="mt-3 space-y-3">
+          {sent.debugOtp && (
+            <p className="text-sm font-semibold text-emerald-800">
+              Demo OTP: {sent.debugOtp}
+            </p>
+          )}
           <div className="flex gap-2">
             {digits.map((digit, index) => (
               <input

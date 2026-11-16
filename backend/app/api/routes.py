@@ -591,6 +591,7 @@ def therapists(user: User = Depends(get_current_user), db: Session = Depends(get
     return [row(t, [
         "id", "user_id", "name", "specializations", "qualification", "experience",
         "shift_start", "shift_end", "availability_status", "active", "therapy_ids",
+        "gender", "phone", "email", "about_me", "languages", "registration_number",
     ]) for t in db.query(Therapist).filter(Therapist.active == 1).all()]
 
 
@@ -601,7 +602,53 @@ def rooms(user: User = Depends(get_current_user), db: Session = Depends(get_db))
 
 @router.get("/api/receptionists")
 def list_receptionists(user: User = Depends(require_roles(*STAFF)), db: Session = Depends(get_db)):
-    return [row(r, ["id", "user_id", "shift", "address"]) for r in db.query(Receptionist).all()]
+    payload = []
+    for rec in db.query(Receptionist).all():
+        account = db.get(User, rec.user_id) if rec.user_id else None
+        item = row(rec, ["id", "user_id", "shift", "address"])
+        item.update({
+            "name": account.name if account else "",
+            "email": account.email if account else "",
+            "phone": account.phone if account else "",
+            "gender": "",
+            "qualification": "",
+            "yearsOfExperience": 0,
+            "active": bool(account.active) if account else True,
+            "role": account.role if account else "receptionist",
+            "roleLabel": account.role_label if account else "Receptionist",
+        })
+        if account is not None and not account.active:
+            continue
+        payload.append(item)
+    return payload
+
+
+@router.delete("/api/therapists/{therapist_id}")
+def delete_therapist(therapist_id: str, user: User = Depends(require_roles("admin")), db: Session = Depends(get_db)):
+    therapist = db.get(Therapist, therapist_id)
+    if therapist is None:
+        raise HTTPException(404, "Therapist not found.")
+    therapist.active = 0
+    if therapist.user_id:
+        account = db.get(User, therapist.user_id)
+        if account is not None:
+            account.active = 0
+    _audit(db, user.id, "delete-staff", "therapist", therapist.id)
+    db.commit()
+    return {"ok": True, "id": therapist.id}
+
+
+@router.delete("/api/receptionists/{receptionist_id}")
+def delete_receptionist(receptionist_id: str, user: User = Depends(require_roles("admin")), db: Session = Depends(get_db)):
+    rec = db.get(Receptionist, receptionist_id)
+    if rec is None:
+        raise HTTPException(404, "Receptionist not found.")
+    account = db.get(User, rec.user_id) if rec.user_id else None
+    if account is not None:
+        account.active = 0
+    _audit(db, user.id, "delete-staff", "receptionist", rec.id)
+    db.commit()
+    return {"ok": True, "id": rec.id}
 
 
 class BillBody(BaseModel):
