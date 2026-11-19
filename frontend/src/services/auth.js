@@ -6,6 +6,7 @@
  */
 
 import { getAll } from '../mocks/store.js'
+import { api, remoteReady } from './http.js'
 
 const SESSION_KEY = 'ayursutra:session'
 
@@ -76,4 +77,30 @@ export function updateSession(patch) {
   const next = { ...current, ...patch }
   localStorage.setItem(SESSION_KEY, JSON.stringify(next))
   return next
+}
+
+/** Replace the whole clinic session (used after Clerk ↔ /api/me sync). */
+export function replaceSession(next) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(next))
+  return next
+}
+
+/** Load the linked clinic user from the backend after Clerk sign-in. */
+export async function fetchClinicMe() {
+  if (!remoteReady()) return null
+  return api('/api/me')
+}
+
+export function clinicUserFromMe(me, clerkId) {
+  if (!me) return null
+  return {
+    id: me.id,
+    name: me.name,
+    email: me.email,
+    role: me.role,
+    roleLabel: me.roleLabel,
+    ...(me.patientId ? { patientId: me.patientId } : {}),
+    ...(me.therapistId ? { therapistId: me.therapistId } : {}),
+    clerkId: me.clerkId || clerkId || null,
+  }
 }

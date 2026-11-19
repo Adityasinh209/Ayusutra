@@ -22,7 +22,7 @@ const DEMO_ACCOUNTS = [
 ]
 
 export default function SignInPage() {
-  const { user, login } = useAuth()
+  const { user, login, isLoaded: authLoaded } = useAuth()
   const { isLoaded, isSignedIn } = useClerkAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -37,9 +37,9 @@ export default function SignInPage() {
   }, [intent])
 
   useEffect(() => {
-    if (!user) return
+    if (!authLoaded || !user) return
     navigate(postAuthRedirect(user, { intent, demo: !!pendingDemo }), { replace: true })
-  }, [user, intent, pendingDemo, navigate])
+  }, [authLoaded, user, intent, pendingDemo, navigate])
 
   useEffect(() => {
     if (!pendingDemo) return
@@ -114,8 +114,8 @@ export default function SignInPage() {
     })
   }
 
+  if (!isLoaded || !authLoaded) return null
   if (user) return null
-  if (!isLoaded) return null
 
   return (
     <ClerkAuthLayout eyebrow="Staff & patient portal">

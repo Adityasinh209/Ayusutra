@@ -8,7 +8,7 @@ export default function ProtectedRoute({ children, roles }) {
   const { user, isLoaded } = useAuth()
   const location = useLocation()
 
-  if (!isLoaded && !user) {
+  if (!isLoaded) {
     return <PageSpinner />
   }
 

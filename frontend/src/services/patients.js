@@ -114,6 +114,8 @@ export function findPatientForUser(user) {
 
 export function patientNeedsIntake(user) {
   if (!user || user.role !== 'patient') return false
+  // Linked patientId from /api/me or intake means the clinic record already exists.
+  if (user.patientId) return false
   const patient = findPatientForUser(user)
   if (!patient) return true
   return !patient.fullName?.trim() || !patient.phone?.trim() || !patient.address?.trim()

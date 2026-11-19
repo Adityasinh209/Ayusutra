@@ -7,7 +7,7 @@ import ClerkAuthLayout from '../layouts/ClerkAuthLayout.jsx'
 import { PageSpinner } from '../components/Spinner.jsx'
 
 export default function SignUpPage() {
-  const { user } = useAuth()
+  const { user, isLoaded: authLoaded } = useAuth()
   const { isLoaded, isSignedIn } = useClerkAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -18,11 +18,11 @@ export default function SignUpPage() {
   }, [intent])
 
   useEffect(() => {
-    if (!user) return
+    if (!authLoaded || !user) return
     navigate(postAuthRedirect(user, { intent }), { replace: true })
-  }, [user, intent, navigate])
+  }, [authLoaded, user, intent, navigate])
 
-  if (!isLoaded) return null
+  if (!isLoaded || !authLoaded) return null
   if (user) return null
   if (isSignedIn) {
     return (
