@@ -36,7 +36,7 @@ import {
 } from './seedReview.js'
 
 const NS = 'ayursutra'
-const STORE_VERSION = 'v3'
+const STORE_VERSION = 'v5'
 const VERSION_KEY = `${NS}:storeVersion`
 
 const key = (entity) => `${NS}:${entity}`

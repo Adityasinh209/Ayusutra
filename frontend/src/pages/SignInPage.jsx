@@ -13,6 +13,7 @@ import {
 
 const DEMO_ACCOUNTS = [
   { role: 'therapist', label: 'Panchakarma Therapist', email: 'therapist@ayursutra.dev', password: 'Therapist@123' },
+  { role: 'therapist', label: 'Priya Sharma (Therapist)', email: 'priya.sharma@ayursutra.dev', password: 'Therapist@123' },
   { role: 'receptionist', label: 'Receptionist', email: 'receptionist@ayursutra.dev', password: 'Reception@123' },
   { role: 'patient', label: 'Patient', email: 'patient@ayursutra.dev', password: 'Patient@123' },
   { role: 'admin', label: 'Administrator', email: 'admin@ayursutra.dev', password: 'Admin@123' },

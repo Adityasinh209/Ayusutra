@@ -63,11 +63,11 @@ describe('Appointment Confirmation', () => {
   })
 
   it('new appointment appears in patient appointment list', async () => {
-    const slots = await recommendSlots({ patientId: 'patient-3', therapyId: 'therapy-3' })
+    const slots = await recommendSlots({ patientId: 'patient-3', therapyId: 'therapy-1' })
     const slot = slots[0]
     await confirmAppointment(slot, {
       patientId: 'patient-3',
-      therapyId: 'therapy-3',
+      therapyId: 'therapy-1',
       createdBy: 'user-2',
     })
     const appts = await getAppointmentsForPatient('patient-3')

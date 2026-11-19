@@ -42,18 +42,21 @@ def seed(db: Session) -> None:
             ),
             Therapist(
                 id="therapist-1", name="Amit Joshi",
-                specializations="Abhyanga,Swedana", therapy_ids="therapy-1",
+                specializations="Abhyanga,Swedana,Basti,Virechana,Vamana,Kati Basti,Janu Basti,Kizhi,Udvartana",
+                therapy_ids="therapy-1,therapy-3,therapy-5,therapy-6,therapy-7,therapy-8,therapy-9,therapy-10,therapy-11",
                 qualification="BAMS", experience=8, shift_start="09:00", shift_end="17:00",
                 availability_status="Available", active=1,
             ),
             Therapist(
                 id="therapist-2", name="Priya Sharma",
-                specializations="Shirodhara", therapy_ids="therapy-2",
+                specializations="Shirodhara,Abhyanga,Nasya,Basti,Swedana,Kizhi,Janu Basti",
+                therapy_ids="therapy-2,therapy-1,therapy-3,therapy-4,therapy-5,therapy-8,therapy-10",
                 qualification="BAMS, MD (Panchakarma)", experience=5, shift_start="10:00", shift_end="18:00",
                 availability_status="Available", active=1,
             ),
             TherapyRoom(id="room-1", name="Abhyanga Shala 1", room_type="Abhyanga Room", active=1),
             TherapyRoom(id="room-3", name="Shirodhara Kutir", room_type="Shirodhara Room", active=1),
+            TherapyRoom(id="room-5", name="Basti & Chikitsa Shala", room_type="Basti Room", active=1),
             User(
                 id="user-1", email="doctor@ayursutra.dev", name="Dr. Meera Nair",
                 role="doctor", role_label="Doctor", phone="9876501001", active=1,
@@ -66,6 +69,11 @@ def seed(db: Session) -> None:
                 id="user-4", email="therapist@ayursutra.dev", name="Amit Joshi",
                 role="therapist", role_label="Therapist", therapist_id="therapist-1",
                 phone="9876501004", active=1,
+            ),
+            User(
+                id="user-priya", email="priya.sharma@ayursutra.dev", name="Priya Sharma",
+                role="therapist", role_label="Therapist", therapist_id="therapist-2",
+                phone="9876501005", active=1,
             ),
             Patient(
                 id="patient-1", full_name="Rahul Sharma", phone="9876543210", email="rahul.sharma@email.com",
@@ -88,21 +96,38 @@ def seed(db: Session) -> None:
 def _seed_clinic_gaps(db: Session) -> None:
     """Fill receptionist / inventory / billing / follow-up rows even when core seed already ran."""
     therapist = db.get(Therapist, "therapist-1")
-    if therapist and not therapist.user_id:
-        therapist.user_id = "user-4"
+    if therapist:
+        if not therapist.user_id:
+            therapist.user_id = "user-4"
         therapist.qualification = therapist.qualification or "BAMS"
         therapist.experience = therapist.experience or 8
         therapist.shift_start = therapist.shift_start or "09:00"
         therapist.shift_end = therapist.shift_end or "17:00"
         therapist.availability_status = therapist.availability_status or "Available"
+        therapist.specializations = "Abhyanga,Swedana,Basti,Virechana,Vamana,Kati Basti,Janu Basti,Kizhi,Udvartana"
+        therapist.therapy_ids = "therapy-1,therapy-3,therapy-5,therapy-6,therapy-7,therapy-8,therapy-9,therapy-10,therapy-11"
 
     therapist2 = db.get(Therapist, "therapist-2")
-    if therapist2 and not therapist2.qualification:
-        therapist2.qualification = "BAMS, MD (Panchakarma)"
-        therapist2.experience = 5
-        therapist2.shift_start = "10:00"
-        therapist2.shift_end = "18:00"
-        therapist2.availability_status = "Available"
+    if therapist2:
+        if not therapist2.qualification:
+            therapist2.qualification = "BAMS, MD (Panchakarma)"
+            therapist2.experience = 5
+            therapist2.shift_start = "10:00"
+            therapist2.shift_end = "18:00"
+            therapist2.availability_status = "Available"
+        therapist2.specializations = "Shirodhara,Abhyanga,Nasya,Basti,Swedana,Kizhi,Janu Basti"
+        therapist2.therapy_ids = "therapy-2,therapy-1,therapy-3,therapy-4,therapy-5,therapy-8,therapy-10"
+
+    if not db.get(TherapyRoom, "room-5"):
+        db.add(TherapyRoom(id="room-5", name="Basti & Chikitsa Shala", room_type="Basti Room", active=1))
+    if not db.get(User, "user-priya"):
+        db.add(User(
+            id="user-priya", email="priya.sharma@ayursutra.dev", name="Priya Sharma",
+            role="therapist", role_label="Therapist", therapist_id="therapist-2",
+            phone="9876501005", active=1,
+        ))
+    if therapist2 and not therapist2.user_id:
+        therapist2.user_id = "user-priya"
 
     patient = db.get(Patient, "patient-1")
     if patient and not patient.blood_group:
